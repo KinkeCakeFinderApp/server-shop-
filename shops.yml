@@ -1,0 +1,351 @@
+main-menu-title: "&2Folia Shop"
+shop-menu-title: "&2%shop%"
+sell-menu-title: "&2Sell Items"
+
+gui:
+  filler:
+    enabled: true
+    material: minecraft:black_stained_glass_pane
+    name: " "
+  back-button:
+    material: minecraft:arrow
+    name: "&cBack"
+    lore:
+      - "&7Return to the previous menu."
+  close-button:
+    material: minecraft:barrier
+    name: "&cClose"
+  main-buttons:
+    search:
+      slot: 47
+      material: minecraft:spyglass
+      name: "&aSearch"
+      lore:
+        - "&7Java: opens search dialog."
+        - "&7Bedrock: use /shop search <text>."
+      action:
+        type: search
+    close:
+      slot: 49
+      material: minecraft:barrier
+      name: "&cClose"
+      action:
+        type: close
+
+shops:
+  blocks:
+    enabled: true
+    name: "📦 &aBlocks"
+    permission: "foliashop.shop.blocks"
+    lore:
+      - "&7Building blocks and decoration."
+      - "&eClick to browse."
+    icon: minecraft:bricks
+    slot: 10
+    items:
+      stone:
+        enabled: true
+        material: minecraft:stone
+        name: "&fStone"
+        lore:
+          - "&7A reliable building block."
+        amount: 16
+        slot: 10
+        buy: 80.0
+        sell: 20.0
+      oak_logs:
+        enabled: true
+        material: minecraft:oak_log
+        name: "&6Oak Logs"
+        amount: 16
+        slot: 11
+        buy: 120.0
+        sell: 35.0
+
+  mining:
+    enabled: true
+    name: "⛏️ &6Mining"
+    permission: "foliashop.shop.mining"
+    lore:
+      - "&7Ores, gems, and mining rewards."
+    icon: minecraft:diamond_pickaxe
+    slot: 11
+    items:
+      coal:
+        enabled: true
+        material: minecraft:coal
+        name: "&8Coal"
+        amount: 16
+        slot: 10
+        buy: 80.0
+        sell: 20.0
+      iron_ingot:
+        enabled: true
+        material: minecraft:iron_ingot
+        name: "&fIron Ingot"
+        amount: 8
+        slot: 11
+        buy: 160.0
+        sell: 48.0
+      diamond:
+        enabled: true
+        material: minecraft:diamond
+        name: "&bDiamond"
+        amount: 1
+        slot: 12
+        buy: 500.0
+        sell: 150.0
+      buffed_miners_dream:
+        enabled: true
+        buffed-item: miners_dream
+        material: minecraft:diamond_pickaxe
+        name: "&bMiner's Dream"
+        lore:
+          - "&7BuffedItems mining tool."
+          - "&8Uses buffed-item: miners_dream"
+        amount: 1
+        slot: 13
+        buy-price:
+          provider: vault
+          amount: 2500.0
+        sell-price:
+          provider: vault
+          amount: 900.0
+        match:
+          name: false
+          lore: false
+          nbt: true
+
+  farming:
+    enabled: true
+    name: "🌾 &eFarming"
+    permission: "foliashop.shop.farming"
+    lore:
+      - "&7Crops and food materials."
+      - "&eClick to browse."
+    icon: minecraft:wheat
+    slot: 12
+    items:
+      wheat:
+        enabled: true
+        material: minecraft:wheat
+        name: "&eWheat"
+        amount: 16
+        slot: 10
+        buy: 64.0
+        sell: 18.0
+      carrot:
+        enabled: true
+        material: minecraft:carrot
+        name: "&6Carrot"
+        amount: 16
+        slot: 11
+        buy: 64.0
+        sell: 18.0
+      potato:
+        enabled: true
+        material: minecraft:potato
+        name: "&ePotato"
+        amount: 16
+        slot: 12
+        buy: 64.0
+        sell: 18.0
+
+  combat:
+    enabled: true
+    name: "⚔️ &cCombat"
+    permission: "foliashop.shop.combat"
+    lore:
+      - "&7Combat supplies and special gear."
+    icon: minecraft:iron_sword
+    slot: 13
+    items:
+      arrows:
+        enabled: true
+        material: minecraft:arrow
+        name: "&fArrows"
+        amount: 32
+        slot: 10
+        buy: 120.0
+        sell: 24.0
+      shield:
+        enabled: true
+        material: minecraft:shield
+        name: "&fShield"
+        amount: 1
+        slot: 11
+        buy: 250.0
+        sell: 75.0
+
+  fishing:
+    enabled: true
+    name: "🎣 &bFishing"
+    permission: "foliashop.shop.fishing"
+    lore:
+      - "&7Fish and ocean loot."
+    icon: minecraft:fishing_rod
+    slot: 14
+    items:
+      cod:
+        enabled: true
+        material: minecraft:cod
+        name: "&fCod"
+        amount: 16
+        slot: 10
+        buy: 80.0
+        sell: 20.0
+      salmon:
+        enabled: true
+        material: minecraft:salmon
+        name: "&cSalmon"
+        amount: 16
+        slot: 11
+        buy: 96.0
+        sell: 24.0
+
+  nether_end:
+    enabled: true
+    name: "🔥 &5Nether & End"
+    permission: "foliashop.shop.nether_end"
+    lore:
+      - "&7Dangerous dimension materials."
+    icon: minecraft:ender_eye
+    slot: 15
+    items:
+      netherrack:
+        enabled: true
+        material: minecraft:netherrack
+        name: "&cNetherrack"
+        amount: 32
+        slot: 10
+        buy: 64.0
+        sell: 12.0
+      ender_pearl:
+        enabled: true
+        material: minecraft:ender_pearl
+        name: "&5Ender Pearl"
+        amount: 4
+        slot: 11
+        buy: 240.0
+        sell: 60.0
+
+  utilities:
+    enabled: true
+    name: "✨ &dUtilities"
+    permission: "foliashop.shop.utilities"
+    lore:
+      - "&7Useful server and crafting items."
+    icon: minecraft:crafting_table
+    slot: 16
+    items:
+      paper:
+        enabled: true
+        material: minecraft:paper
+        name: "&fPaper"
+        amount: 16
+        slot: 10
+        buy: 64.0
+        sell: 16.0
+      redstone:
+        enabled: true
+        material: minecraft:redstone
+        name: "&cRedstone"
+        amount: 16
+        slot: 11
+        buy: 120.0
+        sell: 30.0
+
+  special:
+    enabled: true
+    name: "⭐ &dSpecial"
+    permission: "foliashop.shop.special"
+    lore:
+      - "&7Custom, command, and premium examples."
+    icon: minecraft:nether_star
+    slot: 22
+    items:
+      ruby:
+        enabled: true
+        material: minecraft:emerald
+        name: "&cRuby"
+        lore:
+          - "&7A custom shop item."
+          - "&8Stored with a namespaced tag."
+        custom-model-data: 1001
+        glow: true
+        amount: 1
+        slot: 10
+        buy-price:
+          provider: vault
+          amount: 500.0
+        sell-price:
+          provider: vault
+          amount: 250.0
+        tags:
+          foliashop:item_id: ruby
+          custom:rarity: rare
+        match:
+          name: false
+          lore: false
+          nbt: true
+          custom-model-data: true
+      smart_zombie_spawner:
+        enabled: true
+        smart-spawner: zombie
+        material: minecraft:spawner
+        name: "&aZombie Smart Spawner"
+        lore:
+          - "&7SmartSpawner product."
+          - "&8Uses smart-spawner: zombie"
+        amount: 1
+        slot: 11
+        buy-price:
+          provider: vault
+          amount: 15000.0
+        sell-price:
+          provider: vault
+          amount: 7500.0
+        match:
+          name: false
+          lore: false
+          nbt: true
+      vanilla_cow_spawner:
+        enabled: false
+        vanilla-spawner: cow
+        material: minecraft:spawner
+        name: "&fCow Vanilla Spawner"
+        lore:
+          - "&7Vanilla spawner product."
+          - "&8Uses vanilla-spawner: cow"
+        amount: 1
+        slot: 12
+        buy-price:
+          provider: vault
+          amount: 10000.0
+        sell-price:
+          provider: vault
+          amount: 5000.0
+        match:
+          name: false
+          lore: false
+          nbt: true
+      smart_diamond_item_spawner:
+        enabled: false
+        item-spawner: diamond
+        material: minecraft:spawner
+        name: "&bDiamond Item Spawner"
+        lore:
+          - "&7SmartSpawner item spawner product."
+          - "&8Uses item-spawner: diamond"
+        amount: 1
+        slot: 13
+        buy-price:
+          provider: vault
+          amount: 25000.0
+        sell-price:
+          provider: vault
+          amount: 12500.0
+        match:
+          name: false
+          lore: false
+          nbt: true
