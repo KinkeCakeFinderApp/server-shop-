@@ -1,196 +1,292 @@
-# LegendaryAdditions 2.0 (Folia / Paper 26.1.2)
+# LegendaryAdditions 3.0 (Folia 26.1.2)
 
-This plugin combines three things:
+This plugin contains:
 
+- A persistent, End-style **Admin dimension**.
+- Authenticated special **fishing-rod weapons and tools**.
+- An **Admin Teleport Rod**.
+- A chest-GUI **suggestion and voting system**.
 - The original Legendary Additions items: Drill, Paxel, Riftcaster, Embershade and Tidefire Crossbow.
-- An authenticated admin-rod system that includes every rod from the *Orbital Strike Cannon v11.0* datapack.
-- A persistent Admin dimension.
 
-## Build (no GitHub needed)
+Nothing else needs to be installed. There is no external datapack to add.
+
+## Build
 
 ```
 cd legendary-additions
 ./gradlew build          # Windows: gradlew.bat build
 ```
 
-The jar is written to `build/libs/legendary_additions-2.0.0.jar`.
-
-- A Java 25 JDK is needed. Gradle downloads one automatically if none is installed.
-- GitHub Actions also builds the jar and uploads it as the `legendary_additions` artifact.
+- The jar is written to `build/libs/legendary_additions-3.0.0.jar`.
+- It needs a Java 25 JDK, because Minecraft 26.1.2 runs on Java 25. Gradle downloads one automatically if it is missing.
+- `./gradlew build` also runs the unit tests.
 
 ## Install
 
-1. Remove any older `legendary_additions-*.jar` from `plugins/`.
-2. Remove the *Orbital Strike Cannon* datapack from `world/datapacks/`. The plugin replaces it, and leaving both installed would run two copies of each effect on old datapack rods.
-3. Drop the new jar into `plugins/` and start the server.
-   - The plugin registers a built-in datapack that creates the `adminplugin:admin` dimension.
-   - If the log says the Admin dimension is not loaded yet, restart the server once.
+1. Stop the server.
+2. Delete any older `legendary_additions-*.jar` from `plugins/`.
+3. Copy the new jar into `plugins/`.
+4. Start the server.
+
+The plugin creates these files in `plugins/LegendaryAdditions/`:
+
+- `config.yml`
+- `rod-secret.key`: the signing key. Keep it private and back it up.
+- `suggestions.db`: the SQLite database that stores suggestions and votes.
+
+## Project structure
+
+```
+net.srv.legendaryadditions
+├─ LegendaryAdditionsBootstrap     registers the Admin dimension at bootstrap
+├─ LegendaryAdditionsMod           main plugin: wiring only
+├─ admin
+│  ├─ AdminSettings                configuration manager (typed snapshot of config.yml)
+│  ├─ SelfTest                     opt-in in-server checks used by CI (-Dlegendaryadditions.selftest=true)
+│  ├─ command                      CommandRegistrar, RodGiveCommand, AdminCommand, SuggestionsCommand
+│  ├─ rod                          RodKind, RodRegistry (rod manager), RodAuthenticator (HMAC),
+│  │                               RayTargeting (targeting manager), RodListener (cast handling), RodKeys
+│  ├─ effect                       RodEffect interface + RodEffects registry, StrikeEffect (orbital + nuke),
+│  │                               LawNukeEffect, WitherNukeEffect, WolfPackEffect, ArrowRainEffect,
+│  │                               TeleportEffect + SafeLocations (teleport manager), ExplosionGuard, Fx
+│  ├─ dimension                    AdminDimension (Admin dimension manager)
+│  ├─ suggestion                   SuggestionService (DB thread), SuggestionAccess (permissions),
+│  │  │                            ChatInputManager
+│  │  ├─ data                      SuggestionRepository (SQLite persistence, voting records), models
+│  │  └─ gui                       SuggestionGui (public), AdminSuggestionGui (admin), Menu, MenuListener,
+│  │                               ClickGuard, Items, SuggestionFormat
+│  └─ util                         Messages
+└─ custom                          original Legendary Additions items
+```
 
 ## Commands
 
-There are no cooldowns, and there is no `/teleport` command.
-
-| Command | Gives | Permission |
+| Command | What it gives or does | Permission |
 |---|---|---|
-| `/stab [player]` | Shulker of 27 single-use **Orbital Strike Rods** | `admindimension.orbitalrod` |
-| `/stabshot [player]` | Reusable Orbital Strike Rod | `admindimension.orbitalrod` |
-| `/nuke [player]` | Shulker of 27 single-use **Nuke Shots** | `admindimension.nukerod` |
-| `/nukeshot [player]` | Reusable Nuke Shot | `admindimension.nukerod` |
-| `/teleportshot [player]` | Reusable **Admin Teleport Rod** | `admindimension.teleportrod` |
-| `/lawnuke [player]` / `/lawnukeshot [player]` | Law-Nuke Shot: shulker / reusable | `admindimension.lawnukerod` |
-| `/withernuke [player]` / `/withernukeshot [player]` | Wither Nuke Shot: shulker / reusable | `admindimension.withernukerod` |
-| `/wolf [player]` / `/wolfshot [player]` | Wolf Rod: shulker / reusable | `admindimension.wolfrod` |
-| `/arrow [player]` / `/arrowshot [player]` | Arrow Shot: shulker / reusable | `admindimension.arrowrod` |
-| `/admin` | Teleport to the Admin dimension | `admindimension.admin` |
-| `/admin return` | Go back to where you were before `/admin` | `admindimension.admin` |
+| `/admin` | Teleport to the Admin dimension's central spawn | `admindimension.use` |
+| `/admin return` | Go back to where you were before `/admin` | `admindimension.use` |
+| `/stab [player]` | **Shulker of 27 single-use Orbital Strike Rods** | `admindimension.orbitalrod` |
+| `/stabshot [player]` | One reusable Orbital Strike Rod | `admindimension.orbitalrod` |
+| `/nuke [player]` | **Shulker of 27 single-use Nuke Shots** | `admindimension.nukerod` |
+| `/nukeshot [player]` | One reusable Nuke Shot | `admindimension.nukerod` |
+| `/lawnuke [player]` | Shulker of 27 single-use Law-Nuke Shots | `admindimension.lawnukerod` |
+| `/lawnukeshot [player]` | One reusable Law-Nuke Shot | `admindimension.lawnukerod` |
+| `/withernuke [player]` | Shulker of 27 single-use Wither Nuke Shots | `admindimension.withernukerod` |
+| `/withernukeshot [player]` | One reusable Wither Nuke Shot | `admindimension.withernukerod` |
+| `/wolfrod [player]` | Shulker of 27 single-use Wolf Rods | `admindimension.wolfrod` |
+| `/wolfrod shot [player]` | One reusable Wolf Rod | `admindimension.wolfrod` |
+| `/arrowrod [player]` | Shulker of 27 single-use Arrow Rods | `admindimension.arrowrod` |
+| `/arrowrodshot [player]` | One reusable Arrow Rod | `admindimension.arrowrod` |
+| `/teleportshot [player]` | One reusable Admin Teleport Rod | `admindimension.teleportrod` |
+| `/suggestions` | Open the suggestions GUI | everyone, or `admindimension.suggestions` if `allow-all-players: false` |
+| `/suggestions admin` | Open the admin suggestion backend | `admindimension.suggestions.admin` |
 | `/legendary_additions give <player> <item>` | Original Legendary Additions items | `legendaryadditions.give` |
 
-- `admindimension.use` (default: everyone) lets a player cast genuine rods.
-- `admindimension.*` grants every permission above.
-- Reusable rods have Unbreaking III, Mending and Curse of Vanishing.
-- Single-use rods are consumed one at a time when cast.
+- The plugin does not add a `/teleport` command. Vanilla `/teleport`, the alias of `/tp`, still exists and is unrelated to this plugin.
+- `[player]` is optional for players. From the console, it is required.
+- Tab completion works for `/admin return`, `/wolfrod shot`, player names, and `/suggestions admin`.
 
-## How rods fire
+## Permissions
 
-**Cast → ray trace from the eyes → lock the exact crosshair hit (block or entity) → effect.**
-
-- The cast is cancelled, so no hook is ever thrown and the hook is never used for targeting.
-- The range is set by `rod-targeting.max-distance`. The teleport rod also caps it at `teleport.max-distance`.
-- On Folia the ray only reads chunks that are loaded and owned by the caster's region, so it never touches another thread's data. Very long shots into unloaded terrain report "No valid target".
-- Normal fishing rods, and the Riftcaster, work exactly as before.
-
-## Authentication
-
-Every genuine rod carries hidden persistent data:
-
-- `adminplugin:rod_type`, for example `orbital_single` or `nuke_reusable`.
-- `adminplugin:rod_version`
-- `adminplugin:rod_nonce`: random, different on every item.
-- `adminplugin:rod_origin`: `plugin` or `datapack`.
-- `adminplugin:rod_source`: the original datapack function, for converted rods.
-- `adminplugin:rod_auth`: an HMAC-SHA256 signature over the fields above.
-
-How the signature works:
-
-- The HMAC key is in `plugins/LegendaryAdditions/rod-secret.key`, is generated on first start, and is never written onto an item.
-- Items made with `/give`, renamed rods, copied lore, and hand-built NBT all fail the check. They do nothing and show a "failed authentication" message.
-- Keep that file private. Deleting it invalidates every rod that already exists.
-- An operator who can copy a whole item, or who edits the server itself, can still duplicate rods. Nothing can prevent that.
-
-Internal ids:
-
-| Rod | Single-use id | Reusable id |
+| Permission | Default | Meaning |
 |---|---|---|
-| Orbital Strike | `orbital_single` | `orbital_reusable` |
-| Nuke | `nuke_single` | `nuke_reusable` |
-| Admin Teleport | — | `teleport_reusable` |
-| Law-Nuke | `lawnuke_single` | `lawnuke_reusable` |
-| Wither Nuke | `withernuke_single` | `withernuke_reusable` |
-| Wolf | `wolf_single` | `wolf_reusable` |
-| Arrow | `arrow_single` | `arrow_reusable` |
+| `admindimension.use` | op | `/admin`, `/admin return` |
+| `admindimension.orbitalrod` | op | `/stab`, `/stabshot` |
+| `admindimension.nukerod` | op | `/nuke`, `/nukeshot` |
+| `admindimension.teleportrod` | op | `/teleportshot` |
+| `admindimension.lawnukerod` / `withernukerod` / `wolfrod` / `arrowrod` | op | the matching commands |
+| `admindimension.suggestions` | true | browse, vote and submit when `allow-all-players` is false |
+| `admindimension.suggestions.admin` | op | the admin backend and every admin action |
+| `admindimension.admin` | op | all of the above |
+| `legendaryadditions.give` | op | `/legendary_additions give` |
 
-## Every rod found in the Orbital Strike Cannon datapack
+Casting a genuine rod needs no permission. Only admins can obtain rods, and every cast is checked against the signature.
 
-The datapack has 43 files, all inspected. Here is how it works:
+## Rods
 
-- It is namespace `orbital_strike_cannon` with pack format 101.
-- `tick.json` runs `orbital_strike_cannon:tick` every tick. That function runs `setup` on every fishing bobber not yet tagged `spawned`.
-- `setup` checks the bobber owner's held rod. A rod counts when it is `fishing_rod[damage=60, custom_data={Orbital_Cannon:1010} or {wolf_cannon:1010}, custom_name=...]`.
-- Each rod then:
-  1. Ray-marches from the player's eyes in 0.5-block steps until it reaches a non-air block (`raycast/*/find_block`).
-  2. Deletes the rod with `item replace ... weapon with air`, so every datapack rod was single-use.
-  3. Plays `item.shield.break`, kills the bobber, and runs the payload.
-- The `get_*` functions give one rod, and the `get_*_shulker` functions give a red shulker holding 27 rods.
-- Nothing else in the pack is rod-related: no recipes, loot tables, tags, advancements or scoreboards.
+**Activation.** Casting a special rod cancels the cast, so no hook is thrown.
 
-### 1. Stab Shot
-- **Original item:** `fishing_rod[damage=60, custom_data={Orbital_Cannon:1010}, custom_name="Stab Shot"]`
-- **Original function:** A 3-stage orbital strike, overworld only. It summons 709 primed TNT at Y=319 above the hit block, falling at -10 blocks/tick:
-  - Stage 1 "Auxiliary Charge": 9 TNT with fuses 1–9.
-  - 300 TNT with fuse 10.
-  - Stage 3 "Penetrator Warhead": 400 TNT with fuse 11.
-  - Together they bore a deep shaft.
-- **Datapack functions:** `get_stab`, `get_stab_shulker`, `setup`, `raycast/stab_raycast_power_1/*`, `stab`
-- **Conversion:** Merged with the built-in Orbital Strike.
-  - It uses the configured warning marker, charging beam, sparks, smoke, impact, shockwave, damage and knockback.
-  - Optional block damage and fire are set in `orbital-strike`.
-  - Direct effects replace the 709 TNT entities.
-- **New id:** `orbital_single` / `orbital_reusable` (origin `plugin`, source `orbital_strike_cannon:stab`)
-- **Commands:** `/stab`, `/stabshot`. The datapack's `get_stab` and `get_stab_shulker` functions map to these.
+1. The plugin ray-traces from the player's eye position along their exact look direction.
+2. It finds the first block or entity hit, using the precise hit point.
+3. It copies that location, so moving the camera during the charge-up cannot move the strike.
+4. The effect starts.
 
-### 2. Nuke Shot
-- **Original item:** `fishing_rod[damage=60, custom_data={Orbital_Cannon:1010}, custom_name="Nuke Shot"]`
-- **Original function:** 1169 primed TNT (fuse 80) summoned 70 blocks above the hit, flung outward in 9 rings at up to 2 blocks/tick. Overworld only.
-- **Datapack functions:** `get_nuke`, `get_nuke_shulker`, `setup`, `raycast/nuke_raycast_power_1/*`, `nuke`
-- **Conversion:** Merged with the built-in Nuke.
-  - It has a large marker, a wide soul-fire beam, and a Wither-spawn warning sound.
-  - The impact includes a multi-emitter blast, sparks, flames, a double shockwave, and a rising mushroom cloud.
-  - Heavy damage and knockback apply.
-  - Block damage comes from a central blast plus a ring of 8 secondary blasts. Fire and block damage are both configurable in `nuke`.
-- **New id:** `nuke_single` / `nuke_reusable` (origin `plugin`, source `orbital_strike_cannon:nuke`)
-- **Commands:** `/nuke`, `/nukeshot`
+**Range.** The range is set by `rod-targeting.max-distance`. The teleport rod is also limited by `teleport-rod.max-distance`.
 
-### 3. Law-Nuke Shot
-- **Original item:** `fishing_rod[damage=60, custom_data={Orbital_Cannon:1010}, custom_name="Law-Nuke Shot"]`
-- **Original function:** The biggest nuke. 1836 primed TNT (fuse 90) summoned 86 blocks above the hit, flung outward at up to 3 blocks/tick, carpet-bombing a very wide area. Overworld only.
-- **Datapack functions:** `get_lawnuke`, `get_lawnuke_shulker`, `setup`, `raycast/lawnuke_raycast/*`, `lawnuke`
-- **Conversion:** `LawNukeEffect`.
-  - A marker and a descending payload cloud appear during a 90-tick fuse.
-  - Then 140 TNT-strength explosions (configurable) fire across a 45-block radius over 30 ticks.
-  - Each explosion runs on the Folia region that owns its location.
-  - Explosions replace the 1836 TNT entities.
-- **New id:** `lawnuke_single` / `lawnuke_reusable` (origin `datapack`)
-- **Commands:** `/lawnuke`, `/lawnukeshot`. The datapack only had `get_lawnuke`, renamed to this format.
+**No cooldowns.** `warning-time-ticks` is only the visual charge-up.
 
-### 4. Wither Nuke Shot
-- **Original item:** `fishing_rod[damage=60, custom_data={Orbital_Cannon:1010}, custom_name="Wither Nuke Shot"]`
-- **Original function:** 1296 charged (`dangerous:1b`) wither skulls summoned 70 blocks above the hit. They rain down with outward motion and acceleration 0.3. This one works in every dimension.
-- **Datapack functions:** `get_wither_nuke`, `get_wither_cannon_rod_shulker`, `setup`, `raycast/wither_nuke_raycast/*`, `wither_nuke`
-- **Conversion:** `WitherNukeEffect`.
-  - 160 charged skulls (configurable) with the same spread, released 20 per tick.
-  - Skulls are tagged with their owner, so `damage-owner: false` protects the caster.
-  - `destroy-blocks: false` stops them breaking terrain.
-- **New id:** `withernuke_single` / `withernuke_reusable` (origin `datapack`)
-- **Commands:** `/withernuke`, `/withernukeshot`
+**Single-use rods:**
+- Exactly one item is removed from the casting hand (main hand or off-hand), and only after the effect starts successfully.
+- A stack goes down by one; it is never removed whole.
+- If the rod refuses to fire (no target, unsafe teleport, disabled world), nothing is consumed.
+- Before consuming, the plugin checks that the hand still holds the same signed rod.
 
-### 5. Wolf Rod
-- **Original item:** `fishing_rod[damage=60, custom_data={wolf_cannon:1010}, custom_name="Wolf Rod"]`. This is the only rod using the `wolf_cannon` tag.
-- **Original function:** Summons 53 wolves, each with wolf armor, Strength II, Regeneration I, Speed II (1800 ticks) and Fire Resistance (9600 ticks), and sets their owner to the caster. They appeared 10 blocks in front of the player (no raycast). Overworld only.
-- **Datapack functions:** `get_wolf_rod`, `get_wolf_rod_shulker`, `setup`, `spawn_wolf`
-- **Conversion:** `WolfPackEffect`.
-  - The same 53 armoured, buffed, tamed wolves, now spawned at the crosshair target.
-  - `lifetime-seconds` can make them temporary.
-- **New id:** `wolf_single` / `wolf_reusable` (origin `datapack`)
-- **Commands:** `/wolf`, `/wolfshot`
+**Reusable rods** have Unbreaking III, Mending and Curse of Vanishing, and are never consumed.
 
-### 6. Arrow Shot
-- **Original item:** `fishing_rod[damage=60, custom_data={Orbital_Cannon:1010}, custom_name="Arrow Shot"]`
-- **Original function:** 50 arrows (a 5×5 grid, two layers with damage 70 and 80) summoned 86 blocks above the hit, moving straight down at 10 blocks/tick. Overworld only.
-- **Datapack functions:** `get_arrow_rod`, `get_arrow_shot_shulker`, `setup`, `raycast/arrow_raycast/*`, `arrow_shot`
-- **Conversion:** `ArrowRainEffect`.
-  - The identical grid, height, speed and damage.
-  - Arrows can't be picked up and disappear shortly after landing.
-- **New id:** `arrow_single` / `arrow_reusable` (origin `datapack`)
-- **Commands:** `/arrow`, `/arrowshot`
+**Normal fishing rods** are untouched. Only rods carrying the plugin's hidden data are intercepted.
 
-### Datapack functions that are not rods
-- `load` is listed in `load.json`, but the function does not exist in the pack.
-- `tick` and `setup` are the detection loop that the plugin's cast listener replaces.
+### What each rod does
 
-### Differences from the datapack
-- Rods fire immediately at the crosshair when cast. The fishing hook is not used.
-- Every datapack rod was single-use. Each now also has a reusable `…shot` version.
-- The datapack only let most rods work in the overworld. The plugin allows every world; use `rod-targeting.disabled-worlds` to block some.
-- Converted single-use rods keep the datapack's name and its `damage=60` durability look.
-- Rods are recognised by the signed hidden data, not by name. The original datapack id is kept in `adminplugin:rod_source`.
-- Old rods made by the datapack carry no signature, so they behave as normal fishing rods. Hand out new ones with the commands above.
+| Rod | Effect |
+|---|---|
+| Orbital Strike | The sequence below, then an impact: shockwave, damage and knockback. Block damage and fire are optional. |
+| Nuke Shot | A larger and stronger version: a wide soul-fire beam, several explosion emitters, a double shockwave and a mushroom cloud. By default it breaks blocks and sets fires. |
+| Law-Nuke Shot | After a 90-tick fuse, 140 TNT-strength blasts ripple across a 45-block radius. Each blast runs on the region that owns its own location. |
+| Wither Nuke Shot | 160 charged wither skulls rain from 70 blocks above the target, released 20 per tick. |
+| Wolf Rod | 53 wolves with wolf armor, Strength II, Regeneration, Speed II and Fire Resistance, tamed to the caster. They can be made temporary. |
+| Arrow Rod | A 5×5 grid of arrows, two layers deep (damage 70 and 80), fired straight down at 10 blocks/tick. |
+| Admin Teleport Rod | Moves you to the nearest safe spot at or near the target: solid ground, two blocks of headroom, inside the world border, no lava (configurable), no void. If there is none, the teleport is cancelled and you are told why. |
 
-## Folia notes
+Orbital Strike sequence: a target marker and warning particles, warning sounds with rising pitch, a charging beam that descends from the sky, and a burst of sparks just before impact.
 
-- Effects run on the `RegionScheduler` of the target location.
-- Delayed and multi-point explosions are each scheduled on the region that owns that point.
-- Give commands and Paxel haste use each player's `EntityScheduler`.
-- Global timers use the `GlobalRegionScheduler`.
-- Teleports use `teleportAsync`.
-- Every repeating effect task cancels itself when it finishes, and no entities are spawned beyond the ones the effect itself needs.
-- The Admin dimension is created by a datapack at bootstrap, because Folia cannot create worlds at runtime.
+For every rod the counts, radius, damage and power are set in `config.yml`. `damage-owner: false` protects the caster from their own explosions and projectiles.
+
+### Authentication
+
+Every rod stores hidden persistent data:
+
+| Key | Contents |
+|---|---|
+| `adminplugin:rod_type` | e.g. `orbital_single`, `nuke_reusable`, `teleport_reusable`, `lawnuke_*`, `withernuke_*`, `wolfrod_*`, `arrowrod_*` |
+| `adminplugin:rod_version` | format version |
+| `adminplugin:rod_nonce` | random, unique per item |
+| `adminplugin:rod_auth` | HMAC-SHA256 over type, version and nonce |
+
+How the check works:
+
+- The HMAC key is in `rod-secret.key` and is never written onto an item.
+- Every cast re-verifies the signature.
+- Items made with `/give`, renamed rods, copied lore, and edited type or signature fields do nothing and show "failed authentication".
+- **Limitation:** nothing can stop an operator from copying an entire item (for example, creative middle-click) or from changing the server or plugin itself. The goal is to stop normal players from making working rods.
+
+## Admin dimension
+
+**Separate from the vanilla End.**
+- The dimension is `adminplugin:admin`, with its own dimension type `adminplugin:admin`.
+- That type is a copy of the 26.1.2 End type (End sky, fog, lighting and music) with `has_ender_dragon_fight: false`.
+- The vanilla End is never modified.
+
+**Terrain.**
+- It uses vanilla End noise: a central island, a void ring, and floating outer islands of end stone.
+- The biome is set to End Highlands everywhere, so chorus plants and Endermen appear everywhere, including on the central island.
+- End cities can also generate.
+
+**How it is created.**
+- Folia cannot create worlds while running. The dimension definition is packaged inside the plugin jar and registered at bootstrap through Paper's `DatapackRegistrar`.
+- The server then generates it and saves it under `world/dimensions/adminplugin/admin` like any vanilla dimension. It persists and is not regenerated on restart.
+
+**Central spawn.**
+- The first `/admin` finds the top of the central island at 0,0 and checks it is safe.
+- A 5×5 end-stone-brick platform is built only if nothing safe exists.
+- The result is saved as the dimension's spawn.
+
+**Return location.**
+- The world key, X, Y, Z, yaw and pitch are saved in the player's persistent data after a successful arrival. They survive restarts.
+- `/admin return` without a saved location explains that instead of throwing an error.
+
+## Suggestions
+
+**Opening it.** `/suggestions` opens a 6-row chest GUI:
+
+| Slots | Contents |
+|---|---|
+| 0–44 | Suggestions for the current page |
+| 45 | Legendary Suggestions tab |
+| 46 | Server Suggestions tab |
+| 47 | Sort order (highest votes → newest → oldest) |
+| 48 / 50 | Previous / Next page |
+| 49 | Submit Suggestion |
+| 51 | Admin Panel (visible to admins only) |
+| 52 | Back |
+| 53 | Close |
+
+**Browsing.** Each suggestion shows its ID, shortened text, category, vote count, author, date, and whether you have voted.
+- Left-click a suggestion to open its details, with the full text and a vote button.
+- Right-click to vote directly from the list.
+
+**Submitting.**
+1. Click Submit.
+2. Type the suggestion in chat. It is not broadcast. Type `cancel` to stop; the input times out after `input-timeout-seconds`.
+3. Pick Legendary Suggestion or Server Suggestion.
+
+New suggestions are saved as **PENDING** and stay hidden from both public tabs until an admin approves them. `max-pending-per-player` limits spam.
+
+**Voting.**
+- Each vote is a database row keyed by (suggestion ID, player UUID) with a primary key, so a second vote is impossible.
+- This holds across reconnects, reopened GUIs, re-running `/suggestions`, and server restarts.
+- Displayed counts are always a `COUNT` over those rows.
+- Only APPROVED suggestions accept votes.
+- If `allow-vote-removal` is true, the vote button lets you remove your vote.
+
+**Admin backend** (`/suggestions admin`, or the Admin Panel button):
+- Tabs for Pending, Approved, Rejected and Archived.
+- The review screen shows the full text, ID, submitter name and UUID, date, status, requested and assigned category, votes, approval info and last reviewer.
+- Buttons: **Approve as Legendary**, **Approve as Server**, **Change Category**, **Reject**, **Archive**, **Delete permanently** (if `allow-delete`), **View voters**, Back and Close.
+- Reject, Archive and Delete ask for confirmation first.
+- Approval stores the admin's UUID and name and the timestamp.
+- The author is notified if online.
+- Online admins are told about new submissions.
+
+### GUI security
+
+- What a click does comes only from a server-side map built when the screen was drawn. The clicked item's name, lore or data is never trusted.
+- Every click in a plugin GUI is cancelled, so items can't be taken out or put in.
+- Only left and right clicks (including shift) on top-inventory slots with a registered action do anything. Drags, number keys, drops and clicks in your own inventory are ignored.
+- Admin screens re-check `admindimension.suggestions.admin` on open, on every click, and again right before each action is queued. Removing someone's permission takes effect on their next click.
+- Clicks are rate-limited to one every 200 ms. Only one database operation per player can run at a time, and confirm buttons work once.
+- Every admin change only applies if the suggestion still has the status the admin was looking at. A stale screen, a double click, or two admins acting at once gets "changed by someone else", and the screen refreshes.
+- Unknown or deleted suggestion IDs are handled with a message.
+
+## Folia design
+
+**Scheduling:**
+- Rod effects run on the target location's `RegionScheduler`.
+- Multi-point explosions are each scheduled on the region that owns that point.
+- Wolf lifetimes run on each wolf's `EntityScheduler`.
+- Item giving, GUI opening and chat input all go through the player's `EntityScheduler`, so work is dropped automatically if the player logs off.
+- The Paxel haste check uses one `GlobalRegionScheduler` timer that hands each player's check to their own scheduler.
+- Spawn-point and world data changes run on the `GlobalRegionScheduler`.
+
+**Region safety:**
+- Ray traces, safe-spot searches and area damage only read chunks that are loaded and owned by the current region.
+- Repeating effects stop themselves when finished or when their world unloads.
+
+**Teleports** always use `teleportAsync`.
+
+**Database:**
+- All database work runs on one dedicated thread, never on a region thread.
+- SQLite allows only one writer, so a single ordered queue is safer than the shared `AsyncScheduler` pool.
+- The SQLite driver comes bundled with Folia (sqlite-jdbc 3.49.1.0).
+
+**No old scheduler.** There is no `BukkitScheduler` usage anywhere.
+
+## Verification
+
+Checked automatically:
+- **Compilation** against `dev.folia:folia-api:26.1.2.build.8-stable`, on every push through GitHub Actions or locally with `./gradlew build`.
+- **Unit tests** (JUnit, `src/test`):
+  - The SQLite repository: new suggestions are PENDING and hidden; approval puts them in the right tab; category changes work.
+  - Votes: duplicates are rejected, and votes persist when the database is reopened.
+  - Rejected, archived and deleted suggestions can't be voted on or shown; stale admin actions are refused; the pending limit holds.
+  - Paging and sorting work.
+  - Text cleaning works.
+  - HMAC signing: the signature verifies, is stable across reloads, and fails when any field is tampered with.
+  - Every rod type ID resolves correctly.
+- **Folia server test** (CI job `folia-server-test`, script `.github/scripts/folia-server-test.sh`):
+  - Boots the official Folia 26.1.2 build twice with the plugin and `-Dlegendaryadditions.selftest=true`.
+  - Every rod kind is genuine and reusable rods have Unbreaking III, Mending and Curse of Vanishing.
+  - Every single-use command's shulker holds 27 genuine single-use rods.
+  - A vanilla rod and a renamed rod with copied lore are treated as normal; edited or made-up signatures are rejected.
+  - A stack of 3 becomes 2, and the last rod empties the hand.
+  - The database keeps pending suggestions hidden and allows one vote per player.
+  - The Admin dimension loads, is separate from the End, generates terrain at the centre, and has a safe spawn.
+  - Every command is registered and responds.
+  - `rod-secret.key` is unchanged after a restart, and the Admin dimension folder is saved.
+
+Not tested automatically, because they need a real game client:
+- Actually casting rods in-game and seeing the effects.
+- Clicking through the GUIs as a player.
+- Chat entry.
+- Teleporting a player.
+
+Test those on your server before relying on them.
