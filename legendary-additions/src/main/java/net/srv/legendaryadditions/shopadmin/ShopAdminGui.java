@@ -329,8 +329,10 @@ public final class ShopAdminGui {
 
    private void openVanilla(Player player, String catId, String query, int page) {
       String q = query.toLowerCase(Locale.ROOT).trim().replace(' ', '_');
+      // Skip legacy materials by name first: calling isItem()/getKey() on them throws.
       List<Material> hits = Arrays.stream(Material.values())
-            .filter(m -> m.isItem() && !m.isAir() && !m.name().startsWith("LEGACY_"))
+            .filter(m -> !m.name().startsWith("LEGACY_"))
+            .filter(m -> m.isItem() && !m.isAir())
             .filter(m -> m.getKey().getKey().contains(q))
             .toList();
       int pages = Math.max(1, (hits.size() + 44) / 45);
