@@ -111,7 +111,7 @@ async function run () {
     record('stabshot hit report', chat.some(m => / hit [1-9][0-9]* targets?\./.test(m)), JSON.stringify(chat))
   })
 
-  // Nuke: Unstable SMP rings - 661 TNT dropped high above the target spread into 10 rings
+  // Nuke: Unstable SMP rings - 669 TNT dropped high above the target spread into 10 rings
   // (6..51 blocks) and explode together. Cast from 70 blocks away so the bot is outside the rings.
   await reset()
   await cmd('nukeshot', 1200)
@@ -125,7 +125,7 @@ async function run () {
     await sleep(1500)
     const tnt = spawned.filter(n => n === 'tnt').length
     record('nukeshot drops TNT', tnt >= 600, `primed TNT seen=${tnt}`)
-    record('nukeshot report', chat.some(m => m.includes('661 TNT in 10 rings')), JSON.stringify(chat))
+    record('nukeshot report', chat.some(m => m.includes('669 TNT in 10 rings')), JSON.stringify(chat))
     await sleep(6500)
     const dead = z && gone.has(z.id)
     record('nukeshot', !!dead, `husk at the centre ${dead ? 'killed' : 'still alive'}`)
@@ -320,7 +320,7 @@ async function legendaryCreator () {
     await sleep(600)
     w = await answer('testpick')
     record('creator new draft', title(w).includes('Editing: testpick'), title(w) + ' chat=' + JSON.stringify(chat))
-    w = await click(20, 1) // right click: type a material
+    w = await click(20, 1, 0, false) // right click: type a material in chat
     w = await answer('netherite_pickaxe')
     w = await click(23)
     record('creator ability screen', title(w).includes('Abilities'), title(w))

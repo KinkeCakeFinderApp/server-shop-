@@ -1,4 +1,4 @@
-# LegendaryAdditions 3.0 (Folia 26.1.2)
+# LegendaryAdditions 3.1 (Folia 26.1.2)
 
 This plugin contains:
 
@@ -6,6 +6,8 @@ This plugin contains:
 - Authenticated special **fishing-rod weapons and tools**.
 - An **Admin Teleport Rod**.
 - A chest-GUI **suggestion and voting system**.
+- A **Legendary Creator** (inside `/suggestionadmin`) to make new legendary items with abilities such as Vein Miner and Tree Capitator, and any enchantments, saved in `legendaries.db`.
+- **`/shop admin`**: an in-game editor for the FoliaShop `/shop` that adds custom legendaries, built-in legendaries, any vanilla item or the item in your hand, with search.
 - The original Legendary Additions items: Drill, Paxel, Riftcaster, Embershade and Tidefire Crossbow.
 
 Nothing else needs to be installed. There is no external datapack to add.
@@ -46,7 +48,7 @@ net.srv.legendaryadditions
 │  ├─ command                      CommandRegistrar, RodGiveCommand, AdminCommand, SuggestionsCommand
 │  ├─ rod                          RodKind, RodRegistry (rod manager), RodAuthenticator (HMAC),
 │  │                               RayTargeting (targeting manager), RodListener (cast handling), RodKeys
-│  ├─ effect                       RodEffect interface + RodEffects registry, StrikeEffect (orbital + nuke),
+│  ├─ effect                       RodEffect interface + RodEffects registry, StrikeEffect (orbital), NukeRingsEffect,
 │  │                               LawNukeEffect, WitherNukeEffect, WolfPackEffect, ArrowRainEffect,
 │  │                               TeleportEffect + SafeLocations (teleport manager), ExplosionGuard, Fx
 │  ├─ dimension                    AdminDimension (Admin dimension manager)
@@ -56,7 +58,12 @@ net.srv.legendaryadditions
 │  │  └─ gui                       SuggestionGui (public), AdminSuggestionGui (admin), Menu, MenuListener,
 │  │                               ClickGuard, Items, SuggestionFormat
 │  └─ util                         Messages
-└─ custom                          original Legendary Additions items
+├─ custom                          original Legendary Additions items
+├─ forge                           Legendary Creator: Ability (every ability), LegendaryItems (build/recognise),
+│  │                               LegendaryService (cache + DB thread), AbilityListener (runs the abilities)
+│  ├─ data                         LegendaryDef, LegendaryRepository (SQLite, legendaries.db)
+│  └─ gui                          LegendaryCreatorGui
+└─ shopadmin                       /shop admin: ShopAdminCommand, ShopAdminGui, FoliaShopStore (shops.yml)
 ```
 
 ## Commands
@@ -80,7 +87,8 @@ net.srv.legendaryadditions
 | `/teleportshot [player]` | One reusable Admin Teleport Rod | `admindimension.teleportrod` |
 | `/suggestions` | Open the suggestions GUI | everyone, or `admindimension.suggestions` if `allow-all-players: false` |
 | `/suggestionadmin` | Open the admin suggestion backend (the only way in) | `admindimension.suggestions.admin` |
-| `/legendary_additions give <player> <item>` | Original Legendary Additions items | `legendaryadditions.give` |
+| `/legendary_additions give <player> <item>` | Original Legendary Additions items and every legendary made in the Legendary Creator | `legendaryadditions.give` |
+| `/shop admin` or `/shopadmin` | Open the shop editor (needs FoliaShop) | `legendaryadditions.shopadmin` |
 
 - The plugin does not add a `/teleport` command. Vanilla `/teleport`, the alias of `/tp`, still exists and is unrelated to this plugin.
 - `[player]` is optional for players. From the console, it is required.
@@ -99,6 +107,7 @@ net.srv.legendaryadditions
 | `admindimension.suggestions.admin` | op | the admin backend and every admin action |
 | `admindimension.admin` | op | all of the above |
 | `legendaryadditions.give` | op | `/legendary_additions give` |
+| `legendaryadditions.shopadmin` | op | `/shop admin`, `/shopadmin` |
 
 **Using a rod needs no permission.** Anyone holding a genuine rod can use it, including players with no permissions at all. That means an admin can give or drop rods to normal players. The permissions above only control *getting* rods through the commands. Every use is still checked against the rod's signature, so players can't make their own rods.
 
@@ -130,7 +139,7 @@ net.srv.legendaryadditions
 | Rod | Effect |
 |---|---|
 | Orbital Strike | Instant impact at the target: damage and knockback to everything within 8 blocks, and a silent crater (radius 4). A chat message tells you how many targets were hit. |
-| Nuke Shot | Like the Orbital Strike but bigger: 20-block damage radius, much more damage, stronger knockback and a silent crater of radius 9. |
+| Nuke Shot | The Unstable SMP / Orbital Strike Cannon nuke. 669 primed TNT (the ring layout of the Orbital Strike Cannon mod: 15, 27, 38 ... 119 per ring, plus one in the centre) appear 72 blocks above the target and are pushed outwards so that, while they fall, air drag spreads them into 10 rings from 6 to 51 blocks. They land about 4 seconds later and all explode together. The ring radii, TNT per ring, height, fuse and power are in `config.yml`; `nuke.style: crater` brings back the old instant crater nuke. |
 | Law-Nuke Shot | 140 TNT-strength blasts ripple across a 45-block radius (an optional fuse is set by `warning-time-ticks`). Each blast runs on the region that owns its own location. |
 | Wither Nuke Shot | 160 charged wither skulls rain from 70 blocks above the target, released 20 per tick. |
 | Wolf Rod | 53 wolves with wolf armor, Strength II, Regeneration, Speed II and Fire Resistance, tamed to the caster. They can be made temporary. |
@@ -141,9 +150,9 @@ net.srv.legendaryadditions
 - Rods still do their real effect.
 - Vanilla explosions, wither skulls and arrows still make their normal vanilla sounds.
 - There is no target warning: `warning-time-ticks` defaults to `0`, so strikes land the moment you cast.
-- Orbital Strike and Nuke remove blocks directly instead of using explosions, so their crater makes no boom and no explosion particles. Set `destroy-blocks: false` to turn the crater off, or change `crater-radius`. Bedrock and other unbreakable blocks are never removed, and nothing drops.
-- The Law-Nuke is made of vanilla explosions, so it still shows them.
-- Config files from 3.0.0 are upgraded automatically on startup (`config-version: 2`): Orbital Strike and Nuke get the crater and no warning delay.
+- Orbital Strike removes blocks directly instead of using explosions, so its crater makes no boom and no explosion particles. Set `destroy-blocks: false` to turn the crater off, or change `crater-radius`. Bedrock and other unbreakable blocks are never removed, and nothing drops.
+- The Nuke (real TNT) and the Law-Nuke are made of vanilla explosions, so they still show them.
+- Old config files are upgraded automatically on startup (`config-version: 3`): Orbital Strike gets the crater and no warning delay, and the Nuke switches to the TNT rings.
 
 For every rod the counts, radius, damage and power are set in `config.yml`. `damage-owner: false` protects the caster from their own explosions and projectiles.
 
@@ -242,6 +251,59 @@ New suggestions are saved as **PENDING** and stay hidden from both public tabs u
 - Every admin change only applies if the suggestion still has the status the admin was looking at. A stale screen, a double click, or two admins acting at once gets "changed by someone else", and the screen refreshes.
 - Unknown or deleted suggestion IDs are handled with a message.
 
+## Legendary Creator
+
+Open `/suggestionadmin` and click **Legendary Creator** (the nether star, slot 52). You need `admindimension.suggestions.admin`.
+
+- **List**: every custom legendary. Left click to edit, right click to give yourself one, shift + right click to delete. **Create New Legendary** asks for an id in chat (for example `storm_blade`). The new item starts as the material in your hand.
+- **Editor**:
+  - **Name**: type it in chat. Colour codes such as `&6&l` work.
+  - **Material**: left click uses the item in your hand; right click lets you type one (for example `netherite_axe`).
+  - **Lore**: add lines, remove the last line, or clear.
+  - **Enchantments**: every enchantment in the game, at any level up to 255. Left +1, right -1, shift + left +10, shift + right removes it.
+  - **Abilities**: the list below. Left +1, right -1, shift + left sets the max level, shift + right removes it.
+  - Toggles for **Unbreakable** and **Enchant Glow**, and **Custom Model Data** for resource packs.
+  - **Save** writes the item to `plugins/LegendaryAdditions/legendaries.db` (SQLite). **Give Yourself One** and **Discard Changes** are next to it.
+- Items only carry their id. Their abilities are always read from the saved definition, so editing a legendary changes every copy players already have, and deleting one turns its abilities off.
+- Give one to anyone with `/legendary_additions give <player> <id>`. That command also works from the console and from shop purchases.
+
+| Ability | Max | What it does |
+|---|---|---|
+| Vein Miner | 5 | Mining an ore also mines every connected ore of the same type (16 per level). |
+| Tree Capitator | 5 | Chopping a log fells the whole trunk of that log type (64 logs per level). |
+| Area Miner | 3 | Mines 3×3, 5×5 or 7×7 facing where you mine (only blocks the tool is right for). |
+| Auto Smelt | 1 | Drops come out smelted, using the server's furnace recipes (raw iron to iron ingot, sand to glass, logs to charcoal...). |
+| Telekinesis | 1 | Block drops, mob drops and mob XP go straight into your inventory. |
+| Replant | 1 | Harvesting a fully grown wheat, carrot, potato, beetroot or nether wart replants it. |
+| Wisdom | 5 | +50% XP per level from blocks and mobs. |
+| Magnet | 5 | Pulls dropped items to you (4 blocks per level). |
+| Lifesteal | 5 | Heals you for 5% of the damage you deal per level. |
+| Critical Strike | 5 | 10% chance per level to deal double damage. |
+| Thunderlord | 5 | 10% chance per level for a lightning strike that adds extra damage. |
+| Venom / Withering / Frost / Ignite | 5 | Poison, wither, slowness + freezing, or fire on what you hit. |
+| Beheading | 5 | 10% chance per level that a kill drops the victim's head. |
+| Explosive Arrows | 5 | Arrows and bolts from this bow or crossbow explode where they land, without breaking blocks. |
+| Dash | 5 | Right click to dash forward. |
+| Featherweight | 1 | No fall damage while held or worn. |
+| Soulbound | 1 | Kept in your inventory when you die. |
+| Speed, Haste, Strength, Resistance, Jump Boost, Regeneration, Night Vision, Water Breathing, Fire Resistance, Saturation, Dolphin's Grace | 1–5 | That effect while the item is held in either hand or worn. |
+
+Blocks broken by Vein Miner, Tree Capitator and Area Miner go through the normal block-break event one by one, so claim and protection plugins still apply to them.
+
+## Shop admin (`/shop admin`)
+
+Needs [FoliaShop](https://modrinth.com/plugin/foliashop) (the `/shop` plugin) and `legendaryadditions.shopadmin`. `/shop admin` is caught before FoliaShop sees it and opens the same GUI as `/shopadmin`.
+
+- **Main screen**: every FoliaShop category, **Search Shop Items** (type a name, id or material; it searches every category), and **Reload FoliaShop**.
+- **Category screen**: every item with its buy and sell price, amount and slot. Left click an item to change its prices; shift + right click removes it (after a confirmation). **Add Item** offers:
+  - **Custom Legendaries** from the Legendary Creator.
+  - **Built-in Legendaries**: Drill, Paxel, Embershade and Tidefire Crossbow.
+  - **Search Vanilla Items**: type part of a name (`diamond`, `oak log`) and pick from the results.
+  - **Item In Your Hand**: adds exactly the held item through FoliaShop's own `addheld` command.
+- Prices are typed in chat as `<buy> <sell> [amount]`, for example `100 25 16`. A sell price of 0 means players can't sell it back.
+- Changes are written to `plugins/FoliaShop/shops.yml` and FoliaShop is reloaded (`foliashop reload`), so they show in `/shop` straight away.
+- Legendaries are sold as FoliaShop command products (`give-item: false` + `[console] legendary_additions give %player% <id>`). FoliaShop only uses `name` and `lore` for the menu, so this is what gives buyers the real item with its abilities. Saving a legendary in the creator also updates its shop entries (name, lore, material, enchantments).
+
 ## Folia design
 
 **Scheduling:**
@@ -288,10 +350,16 @@ Checked automatically:
   - Every command is registered and responds.
   - `rod-secret.key` is unchanged after a restart, and the Admin dimension folder is saved.
 
-Not tested automatically, because they need a real game client:
-- Actually casting rods in-game and seeing the effects.
-- Clicking through the GUIs as a player.
-- Chat entry.
-- Teleporting a player.
+- **In-game bot test** (CI job `ingame-rod-test`, script `.github/scripts/ingame-rod-test.sh`): a real Folia 26.1.2 server with FoliaShop and this repository's `shops.yml`, and a mineflayer bot that joins as a player and:
+  - casts every rod: the Orbital Strike kills its target and leaves a crater; the Nuke drops 669 TNT whose blasts kill the target and leave a hole on each ring; the other rods do their effect;
+  - builds a legendary in the Legendary Creator by clicking the GUI and typing in chat (netherite pickaxe, Vein Miner, Tree Capitator, Auto Smelt, Telekinesis, Efficiency 10), saves it, and the script checks the row in `legendaries.db`;
+  - mines an 18-block iron vein with it (all of it breaks and 18 iron ingots land in the inventory) and chops a 10-log trunk (all of it falls, as charcoal); a plain netherite pickaxe breaks only one block;
+  - adds that legendary and a diamond block to the Legendary shop through `/shop admin`, searches for it, checks `shops.yml`, and sees it in FoliaShop's own `/shop search`;
+  - checks the permission rules (a non-op can use a rod but can't get one).
+
+Not tested automatically:
+- Buying and selling in `/shop`: the test server has no economy plugin. The shop entries use FoliaShop's documented command-product format.
+- The combat, movement and passive abilities (everything in the table after Magnet).
+- Other plugins' protection of blocks broken by the mining abilities.
 
 Test those on your server before relying on them.

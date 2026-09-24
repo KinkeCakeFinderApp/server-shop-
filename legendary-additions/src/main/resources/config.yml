@@ -42,7 +42,7 @@ orbital-strike:
   damage-owner: false
 
 nuke:
-  # rings  = the Unstable SMP / Orbital Strike Cannon nuke: 661 TNT spawn high above the target
+  # rings  = the Unstable SMP / Orbital Strike Cannon nuke: 669 TNT spawn high above the target
   #          and spread into 10 rings as they fall, then all go off together.
   # crater = the old nuke: instant damage in "radius" and a silent crater.
   style: rings
