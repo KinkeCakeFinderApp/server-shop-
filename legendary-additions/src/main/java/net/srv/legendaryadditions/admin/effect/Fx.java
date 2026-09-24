@@ -87,14 +87,15 @@ public final class Fx {
     * Damages and knocks back living entities in range. Entities outside the current region are skipped,
     * so this never mutates another region's state.
     */
-   public static void damageArea(Location center, double radius, double damage, double knockback, UUID owner,
+   public static int damageArea(Location center, double radius, double damage, double knockback, UUID owner,
                                  boolean damageOwner) {
       Collection<Entity> nearby;
       try {
          nearby = center.getWorld().getNearbyEntities(center, radius, radius, radius);
       } catch (RuntimeException ex) {
-         return;
+         return 0;
       }
+      int hit = 0;
       DamageSource source = DamageSource.builder(DamageType.EXPLOSION).withDamageLocation(center).build();
       for (Entity entity : nearby) {
          if (!(entity instanceof LivingEntity living) || living.isDead() || !Bukkit.isOwnedByCurrentRegion(living)) {
@@ -112,6 +113,7 @@ public final class Fx {
             continue;
          }
          double closeness = 1.0 - distance / radius;
+         hit++;
          if (damage > 0) {
             living.damage(damage * (0.5 + 0.5 * closeness), source);
          }
@@ -125,6 +127,7 @@ public final class Fx {
             living.setVelocity(living.getVelocity().add(push));
          }
       }
+      return hit;
    }
 
    /** Sets a bounded number of fires on exposed ground inside the radius (loaded, owned chunks only). */

@@ -11,6 +11,21 @@ URL=$(curl -fsS https://fill.papermc.io/v3/projects/folia/versions/26.1.2/builds
   | python3 -c "import json,sys;print(json.load(sys.stdin)['downloads']['server:default']['url'])")
 curl -fsS -o folia.jar "$URL"
 cp "$JAR" plugins/
+# Start from a config written by 3.0.0 (visual-less, no block damage) to prove it gets upgraded.
+mkdir -p plugins/LegendaryAdditions
+cat > plugins/LegendaryAdditions/config.yml <<'YML'
+rod-effects:
+  sounds: false
+  particles: false
+orbital-strike:
+  warning-time-ticks: 20
+  destroy-blocks: false
+  block-damage-power: 5.0
+nuke:
+  warning-time-ticks: 0
+  destroy-blocks: false
+  block-damage-power: 10.0
+YML
 # CI test server only.
 echo "eula=true" > eula.txt
 cat > server.properties <<'PROPS'
@@ -53,4 +68,5 @@ grep -E "LegendaryAdditions|RodTester" server.log || true
 if grep -nE "Exception|Error" server.log | grep -iE "legendaryadditions|net\.srv"; then
   echo "plugin exception on the server"; BOT=1
 fi
+grep -q "Updated config.yml" server.log || { echo "old config was not upgraded"; BOT=1; }
 exit $BOT

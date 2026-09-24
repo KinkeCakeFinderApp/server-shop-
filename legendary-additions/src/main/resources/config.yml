@@ -5,6 +5,9 @@
 # The fishing hook is never used for targeting. There are NO cooldowns anywhere -
 # "warning-time-ticks" is an optional delay before impact (0 by default).
 
+# Do not edit: used to update older config files automatically.
+config-version: 2
+
 # Extra sounds and particles made by the rods (warning beams, markers, charge-up sounds,
 # smoke, impact sounds, teleport sparkles, the break sound of used-up rods...).
 # Off by default. The rods still do their real effect (damage, knockback, explosions,
@@ -30,13 +33,13 @@ orbital-strike:
   radius: 8.0
   damage: 50.0
   knockback: 2.5
-  # Delay before impact. Set to 0 to strike immediately.
-  warning-time-ticks: 20
-  destroy-blocks: false
+  # Delay before impact. 0 = strikes the instant you cast.
+  warning-time-ticks: 0
+  # Silently removes a sphere of blocks at the target (no explosion sound or particles).
+  destroy-blocks: true
+  crater-radius: 4.0
   create-fire: false
   damage-owner: false
-  # Explosion strength used only when destroy-blocks is true (TNT = 4, max 20).
-  block-damage-power: 5.0
 
 nuke:
   radius: 20.0
@@ -44,12 +47,11 @@ nuke:
   knockback: 5.0
   # Delay before impact (0 = instant, no target warning).
   warning-time-ticks: 0
-  # Breaking blocks / fire use vanilla explosions, which always show explosion
-  # particles and play the explosion sound. Off by default so the nuke is silent.
-  destroy-blocks: false
+  # Silently removes a sphere of blocks at the target (no explosion sound or particles).
+  destroy-blocks: true
+  crater-radius: 9.0
   create-fire: false
   damage-owner: false
-  block-damage-power: 10.0
 
 # /lawnuke, /lawnukeshot - carpet of TNT-strength blasts over a wide area.
 law-nuke:

@@ -24,7 +24,7 @@ public record AdminSettings(
    public record Targeting(double maxDistance, Set<String> disabledWorlds) {}
 
    public record Strike(double radius, double damage, double knockback, int warningTicks, boolean destroyBlocks,
-                        boolean createFire, boolean damageOwner, float blockDamagePower) {}
+                        boolean createFire, boolean damageOwner, double craterRadius) {}
 
    public record Teleport(double maxDistance, int safeSearchRadius, boolean allowLava) {}
 
@@ -49,8 +49,8 @@ public record AdminSettings(
       Targeting targeting = new Targeting(
             positive(config.getDouble("rod-targeting.max-distance", 256.0), 256.0),
             disabled.stream().map(String::toLowerCase).collect(Collectors.toUnmodifiableSet()));
-      Strike orbital = strike(config.getConfigurationSection("orbital-strike"), 8.0, 50.0, 2.5, 0, false, false, 5.0);
-      Strike nuke = strike(config.getConfigurationSection("nuke"), 20.0, 150.0, 5.0, 0, false, false, 10.0);
+      Strike orbital = strike(config.getConfigurationSection("orbital-strike"), 8.0, 50.0, 2.5, 0, true, false, 4.0);
+      Strike nuke = strike(config.getConfigurationSection("nuke"), 20.0, 150.0, 5.0, 0, true, false, 9.0);
 
       Teleport teleport = new Teleport(
             positive(config.getDouble("teleport-rod.max-distance", 100.0), 100.0),
@@ -118,7 +118,7 @@ public record AdminSettings(
    private static Strike strike(ConfigurationSection s, double radius, double damage, double knockback, int warning,
                                 boolean destroy, boolean fire, double power) {
       if (s == null) {
-         return new Strike(radius, damage, knockback, warning, destroy, fire, false, (float) power);
+         return new Strike(radius, damage, knockback, warning, destroy, fire, false, power);
       }
       return new Strike(
             positive(s.getDouble("radius", radius), radius),
@@ -128,7 +128,7 @@ public record AdminSettings(
             s.getBoolean("destroy-blocks", destroy),
             s.getBoolean("create-fire", fire),
             s.getBoolean("damage-owner", false),
-            (float) clamp(s.getDouble("block-damage-power", power), 0.5, 20.0));
+            Math.max(1.0, Math.min(24.0, s.getDouble("crater-radius", power))));
    }
 
    private static double positive(double value, double fallback) {

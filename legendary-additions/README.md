@@ -79,12 +79,12 @@ net.srv.legendaryadditions
 | `/arrowrodshot [player]` | One reusable Arrow Rod | `admindimension.arrowrod` |
 | `/teleportshot [player]` | One reusable Admin Teleport Rod | `admindimension.teleportrod` |
 | `/suggestions` | Open the suggestions GUI | everyone, or `admindimension.suggestions` if `allow-all-players: false` |
-| `/suggestions admin` | Open the admin suggestion backend | `admindimension.suggestions.admin` |
+| `/suggestionadmin` | Open the admin suggestion backend (the only way in) | `admindimension.suggestions.admin` |
 | `/legendary_additions give <player> <item>` | Original Legendary Additions items | `legendaryadditions.give` |
 
 - The plugin does not add a `/teleport` command. Vanilla `/teleport`, the alias of `/tp`, still exists and is unrelated to this plugin.
 - `[player]` is optional for players. From the console, it is required.
-- Tab completion works for `/admin return`, `/wolfrod shot`, player names, and `/suggestions admin`.
+- Tab completion works for `/admin return`, `/wolfrod shot` and player names.
 
 ## Permissions
 
@@ -129,21 +129,21 @@ Casting a genuine rod needs no permission. Only admins can obtain rods, and ever
 
 | Rod | Effect |
 |---|---|
-| Orbital Strike | The sequence below, then an impact: shockwave, damage and knockback. Block damage and fire are optional. |
-| Nuke Shot | Larger radius, much more damage and stronger knockback. The optional visuals are a wide soul-fire beam, several explosion emitters, a double shockwave and a mushroom cloud. Block breaking and fire are optional and off by default. |
+| Orbital Strike | Instant impact at the target: damage and knockback to everything within 8 blocks, and a silent crater (radius 4). Your action bar says how many targets were hit. |
+| Nuke Shot | Like the Orbital Strike but bigger: 20-block damage radius, much more damage, stronger knockback and a silent crater of radius 9. |
 | Law-Nuke Shot | 140 TNT-strength blasts ripple across a 45-block radius (an optional fuse is set by `warning-time-ticks`). Each blast runs on the region that owns its own location. |
 | Wither Nuke Shot | 160 charged wither skulls rain from 70 blocks above the target, released 20 per tick. |
 | Wolf Rod | 53 wolves with wolf armor, Strength II, Regeneration, Speed II and Fire Resistance, tamed to the caster. They can be made temporary. |
 | Arrow Rod | A 5×5 grid of arrows, two layers deep (damage 70 and 80), fired straight down at 10 blocks/tick. |
 | Admin Teleport Rod | Moves you to the nearest safe spot at or near the target: solid ground, two blocks of headroom, inside the world border, no lava (configurable), no void. If there is none, the teleport is cancelled and you are told why. |
 
-Orbital Strike sequence: a target marker and warning particles, warning sounds with rising pitch, a charging beam that descends from the sky, and a burst of sparks just before impact.
-
 **Sounds and particles are off by default.** `rod-effects.sounds` and `rod-effects.particles` in `config.yml` control every extra sound and particle the rods make: warning markers, beams, charge-up sounds, smoke, shockwave rings, teleport sparkles, and the break sound of used-up rods. Set either to `true` to bring them back. With both off:
 - Rods still do their real effect.
 - Vanilla explosions, wither skulls and arrows still make their normal vanilla sounds.
 - There is no target warning: `warning-time-ticks` defaults to `0`, so strikes land the moment you cast.
-- The Nuke defaults to `destroy-blocks: false` and `create-fire: false`. Vanilla explosions always show explosion particles and play the boom sound, so with these off the Nuke makes no explosions and only deals damage and knockback. Turn them back on if you want terrain damage. The Law-Nuke is made of explosions, so it still shows them.
+- Orbital Strike and Nuke remove blocks directly instead of using explosions, so their crater makes no boom and no explosion particles. Set `destroy-blocks: false` to turn the crater off, or change `crater-radius`. Bedrock and other unbreakable blocks are never removed, and nothing drops.
+- The Law-Nuke is made of vanilla explosions, so it still shows them.
+- Config files from 3.0.0 are upgraded automatically on startup (`config-version: 2`): Orbital Strike and Nuke get the crater and no warning delay.
 
 For every rod the counts, radius, damage and power are set in `config.yml`. `damage-owner: false` protects the caster from their own explosions and projectiles.
 
@@ -202,7 +202,6 @@ How the check works:
 | 47 | Sort order (highest votes → newest → oldest) |
 | 48 / 50 | Previous / Next page |
 | 49 | Submit Suggestion |
-| 51 | Admin Panel (visible to admins only) |
 | 52 | Back |
 | 53 | Close |
 
@@ -224,7 +223,7 @@ New suggestions are saved as **PENDING** and stay hidden from both public tabs u
 - Only APPROVED suggestions accept votes.
 - If `allow-vote-removal` is true, the vote button lets you remove your vote.
 
-**Admin backend** (`/suggestions admin`, or the Admin Panel button):
+**Admin backend** (`/suggestionadmin` only):
 - Tabs for Pending, Approved, Rejected and Archived.
 - The review screen shows the full text, ID, submitter name and UUID, date, status, requested and assigned category, votes, approval info and last reviewer.
 - Buttons: **Approve as Legendary**, **Approve as Server**, **Change Category**, **Reject**, **Archive**, **Delete permanently** (if `allow-delete`), **View voters**, Back and Close.

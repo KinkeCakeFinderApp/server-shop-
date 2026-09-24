@@ -6,6 +6,7 @@ const { Vec3 } = require('vec3')
 const results = []
 const chat = []
 const spawned = []
+const actionBars = []
 let bot
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
@@ -45,12 +46,17 @@ async function reset () {
   await cmd('kill @e[type=!player]', 600)
   await cmd('clear', 400)
   await cmd('effect clear @s', 200)
+  // Put the flat ground back so craters from earlier casts don't change the next test.
+  await cmd('fill -24 -60 -16 30 -50 16 air', 300)
+  await cmd('fill -24 -63 -16 30 -62 16 dirt', 300)
+  await cmd('fill -24 -61 -16 30 -61 16 grass_block', 300)
   await cmd('tp @s 0.5 -60 0.5 -90 0', 1500) // flat world surface, facing east (+x)
 }
 
 async function cast () {
   chat.length = 0
   spawned.length = 0
+  actionBars.length = 0
   bot.activateItem()
   await sleep(150)
   bot.deactivateItem()
@@ -102,6 +108,9 @@ async function run () {
       const hit = !alive || (health !== undefined && health < 20)
       record(command, hit, `zombie ${alive ? 'alive health=' + health : 'gone/dead'}; rods ${before}->${rodCount()}; chat=${JSON.stringify(chat)}`)
       record(command + ' reusable', rodCount() === before, `rods ${before}->${rodCount()}`)
+      const ground = bot.blockAt(new Vec3(10, -61, 0))
+      record(command + ' crater', ground && ground.name === 'air', `block under target is ${ground && ground.name}`)
+      record(command + ' action bar', actionBars.some(m => m.includes('hit')), JSON.stringify(actionBars))
     })
   }
 
@@ -210,7 +219,10 @@ function finish () {
 }
 
 bot = mineflayer.createBot({ host: '127.0.0.1', port: 25565, username: 'RodTester', auth: 'offline' })
-bot.on('messagestr', m => { chat.push(m); log('chat:', m) })
+bot.on('messagestr', (m, position) => {
+  if (position === 'game_info') { actionBars.push(m); log('action bar:', m); return }
+  chat.push(m); log('chat:', m)
+})
 bot.on('entitySpawn', e => { if (e !== bot.entity) spawned.push(e.name) })
 bot.on('kicked', r => { console.log('KICKED', JSON.stringify(r)); process.exit(2) })
 bot.on('error', e => { console.log('ERROR', e); process.exit(2) })

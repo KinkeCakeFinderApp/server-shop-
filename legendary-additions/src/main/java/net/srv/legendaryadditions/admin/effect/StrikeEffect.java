@@ -1,6 +1,8 @@
 package net.srv.legendaryadditions.admin.effect;
 
 import java.util.UUID;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.srv.legendaryadditions.admin.AdminSettings;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -9,6 +11,7 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 /**
@@ -111,24 +114,17 @@ public final class StrikeEffect {
       Fx.sound(center, Sound.ENTITY_GENERIC_EXPLODE, SoundCategory.MASTER, nuke ? 10F : 6F, nuke ? 0.4F : 0.7F);
       Fx.sound(center, Sound.ENTITY_WARDEN_SONIC_BOOM, SoundCategory.MASTER, nuke ? 8F : 4F, nuke ? 0.5F : 1.0F);
 
-      Fx.damageArea(center, radius, settings.damage(), settings.knockback(), owner, settings.damageOwner());
-
-      UUID protectedOwner = settings.damageOwner() ? null : owner;
+      int hit = Fx.damageArea(center, radius, settings.damage(), settings.knockback(), owner, settings.damageOwner());
       if (settings.destroyBlocks()) {
-         ExplosionGuard.explode(center, settings.blockDamagePower(), settings.createFire(), true, protectedOwner);
-         if (nuke) {
-            // A ring of secondary blasts widens the crater without scanning blocks ourselves.
-            int blasts = 8;
-            for (int i = 0; i < blasts; i++) {
-               double angle = 2 * Math.PI * i / blasts;
-               Location at = center.clone().add(Math.cos(angle) * radius * 0.55, 0, Math.sin(angle) * radius * 0.55);
-               float power = settings.blockDamagePower() * 0.6F;
-               Bukkit.getRegionScheduler().runDelayed(plugin, at,
-                     t -> ExplosionGuard.explode(at, power, settings.createFire(), true, protectedOwner), 2L + i);
-            }
-         }
-      } else if (settings.createFire()) {
+         Crater.carve(plugin, center, settings.craterRadius());
+      }
+      if (settings.createFire()) {
          Fx.scatterFire(center, radius, (int) Math.min(64, radius * 3));
+      }
+      Player caster = Bukkit.getPlayer(owner);
+      if (caster != null) {
+         caster.sendActionBar(Component.text((nuke ? "Nuke" : "Orbital Strike") + " hit " + hit
+               + (hit == 1 ? " target" : " targets"), NamedTextColor.RED));
       }
    }
 }

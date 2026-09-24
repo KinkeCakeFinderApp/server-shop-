@@ -44,6 +44,7 @@ public class LegendaryAdditionsMod extends JavaPlugin {
       server = this.getServer();
 
       this.saveDefaultConfig();
+      this.migrateConfig();
       this.settings = AdminSettings.load(this.getConfig());
       Fx.configure(this.settings.rodParticles(), this.settings.rodSounds());
 
@@ -110,5 +111,27 @@ public class LegendaryAdditionsMod extends JavaPlugin {
       if (this.suggestions != null) {
          this.suggestions.close();
       }
+   }
+
+   /**
+    * Config files written by 3.0.0 made Orbital Strike and Nuke look like duds (no visuals and no
+    * block damage). Version 2 gives them a silent crater and no warning delay.
+    */
+   private void migrateConfig() {
+      var config = this.getConfig();
+      if (config.getInt("config-version", 1) >= 2) {
+         return;
+      }
+      config.set("orbital-strike.warning-time-ticks", 0);
+      config.set("orbital-strike.destroy-blocks", true);
+      config.set("orbital-strike.crater-radius", 4.0);
+      config.set("orbital-strike.block-damage-power", null);
+      config.set("nuke.warning-time-ticks", 0);
+      config.set("nuke.destroy-blocks", true);
+      config.set("nuke.crater-radius", 9.0);
+      config.set("nuke.block-damage-power", null);
+      config.set("config-version", 2);
+      this.saveConfig();
+      this.getLogger().info("Updated config.yml: Orbital Strike and Nuke now leave a silent crater and strike instantly.");
    }
 }
