@@ -1,17 +1,23 @@
-# LegendaryAdditions - admin rods & Admin dimension
+# LegendaryAdditions - admin rods, Admin dimension and suggestions (Folia 26.1.2)
 #
-# Every special rod activates the instant it is cast: the plugin ray-traces from the
-# player's eyes and the exact block/entity under the crosshair becomes the target.
-# The fishing hook is never used. There are no cooldowns.
+# Every special rod fires the instant it is cast: the plugin ray-traces from the caster's
+# eyes along their exact look direction, locks the hit point, then runs the effect.
+# The fishing hook is never used for targeting. There are NO cooldowns anywhere -
+# "warning-time-ticks" is only the visual charge-up before impact.
 
 rod-targeting:
-  # Maximum ray-trace distance in blocks. On Folia the ray also stops at the edge of
-  # the caster's region / loaded chunks, so very long shots into unloaded terrain miss.
+  # Maximum ray-trace distance in blocks. On Folia the ray also stops at the edge of the
+  # caster's region or at unloaded chunks, so shots into unloaded terrain report "no target".
   max-distance: 256.0
-  # Worlds (by name, e.g. "world_nether") where special rods do nothing.
+  # World names where special rods do nothing, e.g. ["world_nether"].
   disabled-worlds: []
 
-# /stab (single-use shulker) and /stabshot (reusable)
+teleport-rod:
+  max-distance: 100.0
+  # How far (blocks) around the looked-at spot to search for a safe standing place.
+  safe-search-radius: 3
+  allow-lava-destinations: false
+
 orbital-strike:
   radius: 8.0
   damage: 50.0
@@ -20,10 +26,9 @@ orbital-strike:
   destroy-blocks: false
   create-fire: false
   damage-owner: false
-  # Explosion strength used only when destroy-blocks is true (TNT = 4).
+  # Explosion strength used only when destroy-blocks is true (TNT = 4, max 20).
   block-damage-power: 5.0
 
-# /nuke (single-use shulker) and /nukeshot (reusable)
 nuke:
   radius: 20.0
   damage: 150.0
@@ -34,31 +39,19 @@ nuke:
   damage-owner: false
   block-damage-power: 10.0
 
-# /teleportshot (reusable only)
-teleport:
-  max-distance: 100.0
-  # How far (blocks) around the looked-at spot to search for a safe standing place.
-  safe-search-radius: 2
-
-# ---- Rods imported from the Orbital Strike Cannon datapack ----
-
-# /lawnuke and /lawnukeshot - "Law-Nuke Shot": a huge carpet of TNT detonations.
-# The datapack summoned 1836 primed TNT; the plugin reproduces the blast pattern with
-# direct explosions instead of entities.
+# /lawnuke, /lawnukeshot - carpet of TNT-strength blasts over a wide area.
 law-nuke:
   radius: 45.0
   explosions: 140
   explosion-power: 4.0
-  # Delay before detonation (the datapack TNT fuse was 90 ticks).
   warning-time-ticks: 90
-  # Detonations are spread over this many ticks.
+  # Detonations ripple outward over this many ticks.
   detonation-ticks: 30
   destroy-blocks: true
   create-fire: false
   damage-owner: false
 
-# /withernuke and /withernukeshot - "Wither Nuke Shot": wither skulls rain down from
-# 70 blocks above the target (the datapack used 1296 skulls).
+# /withernuke, /withernukeshot - charged wither skulls rain from above the target.
 wither-nuke:
   skull-count: 160
   spawn-height: 70.0
@@ -68,7 +61,7 @@ wither-nuke:
   damage-owner: false
   skulls-per-tick: 20
 
-# /wolf and /wolfshot - "Wolf Rod": summons an armoured, buffed wolf pack tamed to the caster.
+# /wolfrod, /wolfrod shot - an armoured, buffed wolf pack tamed to the caster.
 wolf-rod:
   count: 53
   wolf-armor: true
@@ -76,11 +69,11 @@ wolf-rod:
   speed-amplifier: 1
   buff-duration-ticks: 1800
   fire-resistance-ticks: 9600
-  # 0 = wolves stay forever (datapack behaviour). Otherwise they vanish after this many seconds.
+  # 0 = wolves stay forever. Otherwise they vanish after this many seconds.
   lifetime-seconds: 0
 
-# /arrow and /arrowshot - "Arrow Shot": a 5x5 double layer of arrows fired straight down.
-arrow-shot:
+# /arrowrod, /arrowrodshot - a grid of arrows fired straight down.
+arrow-rod:
   grid-size: 5
   layers: 2
   spawn-height: 86.0
@@ -90,5 +83,23 @@ arrow-shot:
   damage-owner: false
 
 admin-dimension:
-  # Namespaced key of the dimension the plugin ships as a built-in datapack.
+  # Key of the dimension shipped inside the plugin jar. Only change this if you know why.
   world: "adminplugin:admin"
+
+suggestions:
+  enabled: true
+  # true: every player may browse, vote and submit. false: requires admindimension.suggestions.
+  allow-all-players: true
+  store-player-names: true
+  min-length: 5
+  max-length: 500
+  allow-vote-removal: false
+  # highest-votes, newest or oldest. Players can also cycle this in the GUI.
+  sorting: highest-votes
+  # How long a player has to type their suggestion into chat.
+  input-timeout-seconds: 120
+  # A player can have at most this many PENDING suggestions at once (0 = unlimited).
+  max-pending-per-player: 5
+  # Lets admins permanently delete suggestions from the review screen.
+  allow-delete: true
+  date-format: "yyyy-MM-dd HH:mm"

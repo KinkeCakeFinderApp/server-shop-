@@ -1,11 +1,11 @@
 {
-  "type": "minecraft:overworld",
+  "type": "adminplugin:admin",
   "generator": {
     "type": "minecraft:noise",
-    "settings": "minecraft:overworld",
+    "settings": "minecraft:end",
     "biome_source": {
-      "type": "minecraft:multi_noise",
-      "preset": "minecraft:overworld"
+      "type": "minecraft:fixed",
+      "biome": "minecraft:end_highlands"
     }
   }
 }

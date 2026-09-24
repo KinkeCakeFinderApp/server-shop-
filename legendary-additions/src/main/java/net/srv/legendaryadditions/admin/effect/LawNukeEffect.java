@@ -13,12 +13,9 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 /**
- * "Law-Nuke Shot" from the Orbital Strike Cannon datapack.
- *
- * <p>The datapack summoned 1836 primed TNT 86 blocks above the target, flung outward at up to 3
- * blocks/tick with a 90-tick fuse, carpet-bombing a wide area. Spawning that many entities is
- * exactly what the performance rules forbid, so the same footprint is reproduced with direct
- * explosions, each scheduled on the region that owns its own location.</p>
+ * Law-Nuke Shot: after a 90-tick fuse with a descending payload cloud, a carpet of TNT-strength
+ * blasts ripples outward across a wide radius. Each blast is scheduled on the region that owns
+ * its own location, so no entities are spawned and no region touches another's blocks.
  */
 public final class LawNukeEffect {
    private LawNukeEffect() {
@@ -34,6 +31,10 @@ public final class LawNukeEffect {
       world.playSound(center, Sound.ENTITY_TNT_PRIMED, SoundCategory.MASTER, 8F, 0.5F);
       int[] tick = {0};
       Bukkit.getRegionScheduler().runAtFixedRate(plugin, center, task -> {
+         if (!EffectGuards.worldStillLoaded(world)) {
+            task.cancel();
+            return;
+         }
          int t = tick[0]++;
          if (t >= warning) {
             task.cancel();
@@ -44,7 +45,7 @@ public final class LawNukeEffect {
          if (t % 3 == 0) {
             Fx.ring(center, radius, 0.2, Particle.DUST, marker, 150);
             Fx.ring(center, radius * 0.5, 0.2, Particle.DUST, marker, 80);
-            // The payload cloud descends from 86 blocks up, like the datapack's falling TNT.
+            // The payload cloud descends from 86 blocks up toward the target.
             Location payload = center.clone().add(0, 86 * (1.0 - progress), 0);
             Fx.particle(payload, Particle.LARGE_SMOKE, 20, radius * 0.15 * (0.3 + progress), 0.01);
             Fx.particle(payload, Particle.FLAME, 10, radius * 0.1, 0.01);
@@ -64,7 +65,7 @@ public final class LawNukeEffect {
 
       world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, SoundCategory.MASTER, 12F, 0.4F);
       for (int i = 0; i < count; i++) {
-         // sqrt keeps the density even across the disc, like the datapack's layered rings.
+         // sqrt keeps the blast density even across the whole disc.
          double distance = Math.sqrt(random.nextDouble()) * settings.radius();
          double angle = random.nextDouble(Math.PI * 2);
          double x = center.getX() + Math.cos(angle) * distance;

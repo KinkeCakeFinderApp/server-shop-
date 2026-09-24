@@ -12,7 +12,7 @@ import org.bukkit.entity.Arrow;
 import org.bukkit.util.Vector;
 
 /**
- * "Arrow Shot" from the datapack: a 5x5 grid of arrows, two layers deep (damage 70 and 80),
+ * Arrow Rod: a 5x5 grid of arrows, two layers deep (damage 70 and 80),
  * fired straight down at 10 blocks/tick from 86 blocks above the target.
  */
 public final class ArrowRainEffect {
@@ -23,7 +23,7 @@ public final class ArrowRainEffect {
    }
 
    /** Runs on the caster's region; the target column is inside that region. */
-   public static void launch(Location target, AdminSettings.ArrowShot settings, UUID owner) {
+   public static void launch(Location target, AdminSettings.ArrowRod settings, UUID owner) {
       World world = target.getWorld();
       double y = Math.min(target.getY() + settings.spawnHeight(), world.getMaxHeight() - 2);
       int half = settings.gridSize() / 2;

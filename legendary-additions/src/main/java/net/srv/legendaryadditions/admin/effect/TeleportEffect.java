@@ -25,9 +25,9 @@ public final class TeleportEffect {
       Block start = target.entity() != null
             ? target.entity().getLocation().getBlock()
             : SafeLocations.standingBlock(target.block(), target.face());
-      Location destination = SafeLocations.find(start, settings.safeSearchRadius(), VERTICAL_SEARCH);
+      Location destination = SafeLocations.find(start, settings.safeSearchRadius(), VERTICAL_SEARCH, settings.allowLava());
       if (destination == null) {
-         Messages.error(player, Messages.UNSAFE_TELEPORT);
+         Messages.error(player, Messages.NO_SAFE_TELEPORT);
          return false;
       }
       Location from = player.getLocation();

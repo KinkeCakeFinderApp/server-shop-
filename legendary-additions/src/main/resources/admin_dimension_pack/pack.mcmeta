@@ -1,8 +1,7 @@
 {
   "pack": {
-    "description": "LegendaryAdditions - persistent Admin dimension",
-    "pack_format": 101,
-    "min_format": 94,
-    "max_format": 200
+    "description": "LegendaryAdditions built-in: the persistent Admin dimension",
+    "min_format": 101,
+    "max_format": 199
   }
 }

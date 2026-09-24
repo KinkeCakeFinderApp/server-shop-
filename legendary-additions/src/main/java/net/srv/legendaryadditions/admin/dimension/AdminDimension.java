@@ -2,6 +2,7 @@ package net.srv.legendaryadditions.admin.dimension;
 
 import java.util.Locale;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 import net.srv.legendaryadditions.admin.AdminSettings;
 import net.srv.legendaryadditions.admin.effect.SafeLocations;
 import net.srv.legendaryadditions.admin.rod.RodKeys;
@@ -19,12 +20,20 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
 /**
- * The persistent Admin dimension. It is a datapack dimension shipped inside the plugin jar and
- * registered at bootstrap, so the server creates and saves it like any vanilla dimension (Folia
- * cannot create worlds at runtime). The return point is stored in the player's persistent data,
- * so /admin return still works after a restart.
+ * The persistent, End-like Admin dimension ({@code adminplugin:admin}).
+ *
+ * <p>Folia cannot create worlds while the server runs, so the dimension is declared inside the
+ * plugin jar and registered during plugin bootstrap (see {@code LegendaryAdditionsBootstrap}).
+ * The server then generates and saves it like any vanilla dimension; nothing extra has to be
+ * installed. It has its own dimension type (End sky, lighting and music, no dragon fight), so the
+ * vanilla End is never touched.</p>
+ *
+ * <p>The return point is stored in the player's persistent data, so {@code /admin return} works
+ * after restarts.</p>
  */
 public final class AdminDimension {
+   private static final NamespacedKey SPAWN_READY = NamespacedKey.fromString("adminplugin:central_spawn_ready");
+
    private final Plugin plugin;
    private final Supplier<AdminSettings> settings;
 
@@ -38,7 +47,7 @@ public final class AdminDimension {
       return key == null ? null : Bukkit.getWorld(key);
    }
 
-   /** Must be called on the player's own thread (commands from players already are). */
+   /** Must be called on the player's own thread (player commands already are). */
    public void enter(Player player) {
       World world = this.world();
       if (world == null) {
@@ -49,81 +58,112 @@ public final class AdminDimension {
          Messages.info(player, "You are already in the Admin dimension. Use /admin return to leave.");
          return;
       }
-      player.getPersistentDataContainer().set(RodKeys.RETURN_LOCATION, PersistentDataType.STRING, serialize(player.getLocation()));
+      String origin = serialize(player.getLocation());
 
-      Location spawn = world.getSpawnLocation();
-      world.getChunkAtAsync(spawn).thenAccept(chunk -> Bukkit.getRegionScheduler().execute(this.plugin, spawn, () -> {
-         Location destination = this.safeArrival(world, spawn);
-         player.getScheduler().run(this.plugin, task -> {
-            destination.setYaw(player.getLocation().getYaw());
-            destination.setPitch(player.getLocation().getPitch());
-            player.teleportAsync(destination, PlayerTeleportEvent.TeleportCause.PLUGIN).thenAccept(success -> {
-               if (success) {
-                  Messages.success(player, "Welcome to the Admin dimension. Use /admin return to go back.");
-               } else {
-                  Messages.error(player, "Teleport to the Admin dimension was cancelled.");
-               }
-            });
-         }, null);
-      }));
-   }
-
-   public void leave(Player player) {
-      String stored = player.getPersistentDataContainer().get(RodKeys.RETURN_LOCATION, PersistentDataType.STRING);
-      Location destination = stored == null ? null : deserialize(stored);
-      if (destination == null) {
-         World main = Bukkit.getWorlds().getFirst();
-         destination = main.getSpawnLocation().add(0.5, 0, 0.5);
-         if (player.getWorld().equals(this.world())) {
-            Messages.info(player, "No saved return point - sending you to the main world spawn.");
-         } else {
-            Messages.error(player, "You have no return point. Use /admin first.");
+      Location centre = this.centralSpawn(world);
+      world.getChunkAtAsync(centre).whenComplete((chunk, error) -> {
+         if (error != null) {
+            this.plugin.getLogger().log(Level.WARNING, "Could not load the Admin dimension spawn chunk", error);
+            player.getScheduler().run(this.plugin, t -> Messages.error(player, Messages.DIMENSION_UNAVAILABLE), null);
             return;
          }
+         Bukkit.getRegionScheduler().execute(this.plugin, centre, () -> {
+            Location destination = this.prepareArrival(world, centre);
+            player.getScheduler().run(this.plugin, task -> {
+               destination.setYaw(player.getLocation().getYaw());
+               destination.setPitch(player.getLocation().getPitch());
+               player.teleportAsync(destination, PlayerTeleportEvent.TeleportCause.PLUGIN).thenAccept(success -> {
+                  if (success) {
+                     // Saved only after a successful arrival, on the player's thread.
+                     player.getScheduler().run(this.plugin, t -> player.getPersistentDataContainer()
+                           .set(RodKeys.RETURN_LOCATION, PersistentDataType.STRING, origin), null);
+                     Messages.success(player, "Welcome to the Admin dimension. Use /admin return to go back.");
+                  } else {
+                     Messages.error(player, "The teleport to the Admin dimension was cancelled.");
+                  }
+               });
+            }, null);
+         });
+      });
+   }
+
+   /** Must be called on the player's own thread. */
+   public void leave(Player player) {
+      String stored = player.getPersistentDataContainer().get(RodKeys.RETURN_LOCATION, PersistentDataType.STRING);
+      if (stored == null) {
+         Messages.error(player, "You have no saved return location. Use /admin first.");
+         return;
+      }
+      Location destination = deserialize(stored);
+      if (destination == null) {
+         Messages.error(player, "Your saved return world no longer exists, so you cannot be returned there.");
+         return;
       }
       player.teleportAsync(destination, PlayerTeleportEvent.TeleportCause.PLUGIN).thenAccept(success -> {
          if (success) {
             player.getScheduler().run(this.plugin,
                   task -> player.getPersistentDataContainer().remove(RodKeys.RETURN_LOCATION), null);
-            Messages.success(player, "Returned from the Admin dimension.");
+            Messages.success(player, "Returned to where you were before entering the Admin dimension.");
          } else {
-            Messages.error(player, "Return teleport was cancelled.");
+            Messages.error(player, "The return teleport was cancelled.");
          }
       });
    }
 
-   /** Runs on the region owning {@code spawn}. Builds a small platform the first time if needed. */
-   private Location safeArrival(World world, Location spawn) {
-      int x = spawn.getBlockX();
-      int z = spawn.getBlockZ();
-      Block surface = world.getHighestBlockAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
-      Location safe = SafeLocations.find(surface.getRelative(0, 1, 0), 2, 3);
-      if (safe != null) {
-         world.setSpawnLocation(safe.getBlockX(), safe.getBlockY(), safe.getBlockZ());
-         return safe;
+   private Location centralSpawn(World world) {
+      Byte ready = world.getPersistentDataContainer().get(SPAWN_READY, PersistentDataType.BYTE);
+      if (ready != null && ready == 1) {
+         return world.getSpawnLocation();
       }
-      int y = Math.max(surface.getY(), world.getMinHeight() + 1);
-      if (y + 3 >= world.getMaxHeight()) {
-         y = world.getMaxHeight() - 4;
-      }
-      for (int dx = -1; dx <= 1; dx++) {
-         for (int dz = -1; dz <= 1; dz++) {
-            world.getBlockAt(x + dx, y, z + dz).setType(Material.SMOOTH_STONE);
-            world.getBlockAt(x + dx, y + 1, z + dz).setType(Material.AIR);
-            world.getBlockAt(x + dx, y + 2, z + dz).setType(Material.AIR);
-         }
-      }
-      world.setSpawnLocation(x, y + 1, z);
-      return new Location(world, x + 0.5, y + 1, z + 0.5);
+      return new Location(world, 0.5, world.getMinHeight() + 1, 0.5);
    }
 
-   private static String serialize(Location location) {
+   /**
+    * Runs on the region owning {@code centre}. The first time, finds the top of the central island
+    * (building a small platform only if nothing safe exists) and saves it as the world spawn, so the
+    * spawn is stable across restarts.
+    */
+   private Location prepareArrival(World world, Location centre) {
+      Byte ready = world.getPersistentDataContainer().get(SPAWN_READY, PersistentDataType.BYTE);
+      if (ready != null && ready == 1) {
+         Location saved = centre.clone();
+         if (SafeLocations.isSafe(saved.getBlock(), false)) {
+            return saved.getBlock().getLocation().add(0.5, 0, 0.5);
+         }
+      }
+      int x = centre.getBlockX();
+      int z = centre.getBlockZ();
+      Block surface = world.getHighestBlockAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+      Location safe = surface.getY() > world.getMinHeight()
+            ? SafeLocations.find(surface.getRelative(0, 1, 0), 3, 3, false)
+            : null;
+      if (safe == null) {
+         int y = Math.clamp(surface.getY(), world.getMinHeight() + 64, world.getMaxHeight() - 4);
+         for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+               world.getBlockAt(x + dx, y, z + dz).setType(Material.END_STONE_BRICKS);
+               world.getBlockAt(x + dx, y + 1, z + dz).setType(Material.AIR);
+               world.getBlockAt(x + dx, y + 2, z + dz).setType(Material.AIR);
+            }
+         }
+         safe = new Location(world, x + 0.5, y + 1, z + 0.5);
+      }
+      Location spawn = safe.clone();
+      // World-level data (spawn point, world PDC) belongs to Folia's global region.
+      Bukkit.getGlobalRegionScheduler().execute(this.plugin, () -> {
+         world.setSpawnLocation(spawn.getBlockX(), spawn.getBlockY(), spawn.getBlockZ());
+         world.getPersistentDataContainer().set(SPAWN_READY, PersistentDataType.BYTE, (byte) 1);
+      });
+      return safe;
+   }
+
+   static String serialize(Location location) {
       return String.join(";", location.getWorld().getKey().toString(),
             Double.toString(location.getX()), Double.toString(location.getY()), Double.toString(location.getZ()),
             Float.toString(location.getYaw()), Float.toString(location.getPitch()));
    }
 
-   private static Location deserialize(String value) {
+   static Location deserialize(String value) {
       String[] parts = value.split(";");
       if (parts.length != 6) {
          return null;

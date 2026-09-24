@@ -17,9 +17,8 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 /**
- * "Wolf Rod" from the datapack: summons a pack of armoured wolves with Strength II, Regeneration,
- * Fire Resistance and Speed II, tamed to the caster. The datapack spawned them 10 blocks ahead;
- * the plugin spawns them at the crosshair target instead.
+ * Wolf Rod: summons a pack of armoured wolves with Strength II, Regeneration, Fire Resistance and
+ * Speed II, tamed to the caster, at the crosshair target.
  */
 public final class WolfPackEffect {
    private WolfPackEffect() {

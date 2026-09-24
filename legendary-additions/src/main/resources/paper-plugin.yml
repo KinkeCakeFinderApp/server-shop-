@@ -4,7 +4,7 @@ main: net.srv.legendaryadditions.LegendaryAdditionsMod
 bootstrapper: net.srv.legendaryadditions.LegendaryAdditionsBootstrap
 api-version: '26.1'
 folia-supported: true
-description: Legendary items, authenticated admin rods and a persistent Admin dimension.
+description: Legendary items, authenticated admin rods, a persistent Admin dimension and a suggestion GUI.
 authors: [MCreator, srv]
 
 permissions:
@@ -12,9 +12,6 @@ permissions:
     description: Allows /legendary_additions give.
     default: op
   admindimension.use:
-    description: Allows casting genuine special rods.
-    default: true
-  admindimension.admin:
     description: Allows /admin and /admin return.
     default: op
   admindimension.orbitalrod:
@@ -33,17 +30,22 @@ permissions:
     description: Allows /withernuke and /withernukeshot.
     default: op
   admindimension.wolfrod:
-    description: Allows /wolf and /wolfshot.
+    description: Allows /wolfrod and /wolfrod shot.
     default: op
   admindimension.arrowrod:
-    description: Allows /arrow and /arrowshot.
+    description: Allows /arrowrod and /arrowrodshot.
     default: op
-  admindimension.*:
-    description: All admin rod and dimension permissions.
+  admindimension.suggestions:
+    description: Browse, vote and submit suggestions (only needed when suggestions.allow-all-players is false).
+    default: true
+  admindimension.suggestions.admin:
+    description: Opens the admin suggestion backend and performs every admin action.
+    default: op
+  admindimension.admin:
+    description: Every admin rod, dimension and suggestion-admin permission.
     default: op
     children:
       admindimension.use: true
-      admindimension.admin: true
       admindimension.orbitalrod: true
       admindimension.nukerod: true
       admindimension.teleportrod: true
@@ -51,3 +53,5 @@ permissions:
       admindimension.withernukerod: true
       admindimension.wolfrod: true
       admindimension.arrowrod: true
+      admindimension.suggestions: true
+      admindimension.suggestions.admin: true

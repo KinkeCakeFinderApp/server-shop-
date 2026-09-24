@@ -25,6 +25,11 @@ public final class RodAuthenticator {
    private final byte[] secret;
    private final ThreadLocal<Mac> macs;
 
+   /** Visible for tests. */
+   static RodAuthenticator ofKey(byte[] secret) {
+      return new RodAuthenticator(secret.clone());
+   }
+
    private RodAuthenticator(byte[] secret) {
       this.secret = secret;
       this.macs = ThreadLocal.withInitial(this::newMac);
@@ -58,17 +63,17 @@ public final class RodAuthenticator {
       return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
    }
 
-   public String sign(String typeId, int version, String nonce, String origin) {
+   public String sign(String typeId, int version, String nonce) {
       Mac mac = this.macs.get();
-      byte[] digest = mac.doFinal(payload(typeId, version, nonce, origin));
+      byte[] digest = mac.doFinal(payload(typeId, version, nonce));
       return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
    }
 
-   public boolean verify(String typeId, int version, String nonce, String origin, String signature) {
-      if (typeId == null || nonce == null || origin == null || signature == null) {
+   public boolean verify(String typeId, int version, String nonce, String signature) {
+      if (typeId == null || nonce == null || signature == null) {
          return false;
       }
-      byte[] expected = this.macs.get().doFinal(payload(typeId, version, nonce, origin));
+      byte[] expected = this.macs.get().doFinal(payload(typeId, version, nonce));
       byte[] actual;
       try {
          actual = Base64.getUrlDecoder().decode(signature);
@@ -78,8 +83,8 @@ public final class RodAuthenticator {
       return MessageDigest.isEqual(expected, actual);
    }
 
-   private static byte[] payload(String typeId, int version, String nonce, String origin) {
-      return ("legendaryadditions-rod|" + typeId + '|' + version + '|' + nonce + '|' + origin).getBytes(StandardCharsets.UTF_8);
+   private static byte[] payload(String typeId, int version, String nonce) {
+      return ("legendaryadditions-rod|" + typeId + '|' + version + '|' + nonce).getBytes(StandardCharsets.UTF_8);
    }
 
    private Mac newMac() {

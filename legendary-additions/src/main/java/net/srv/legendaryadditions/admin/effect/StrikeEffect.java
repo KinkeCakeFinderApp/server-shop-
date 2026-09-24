@@ -43,6 +43,10 @@ public final class StrikeEffect {
 
       int[] tick = {0};
       Bukkit.getRegionScheduler().runAtFixedRate(plugin, center, task -> {
+         if (!EffectGuards.worldStillLoaded(world)) {
+            task.cancel();
+            return;
+         }
          int t = tick[0]++;
          if (t < warning) {
             double progress = (double) t / warning;

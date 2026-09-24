@@ -3,15 +3,23 @@ plugins {
 }
 
 group = "net.srv"
-version = "2.0.0"
+version = "3.0.0"
 
 repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
 }
 
+val foliaApi = "dev.folia:folia-api:26.1.2.build.8-stable"
+
 dependencies {
-    compileOnly("dev.folia:folia-api:26.1.2.build.8-stable")
+    compileOnly(foliaApi)
+    // Folia bundles sqlite-jdbc 3.49.1.0 at runtime; tests need their own copy.
+    testImplementation(foliaApi)
+    testImplementation("org.xerial:sqlite-jdbc:3.49.1.0")
+    testImplementation(platform("org.junit:junit-bom:5.12.2"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 java {
@@ -36,4 +44,12 @@ tasks.processResources {
 
 tasks.jar {
     archiveBaseName = "legendary_additions"
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "failed", "skipped")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
 }

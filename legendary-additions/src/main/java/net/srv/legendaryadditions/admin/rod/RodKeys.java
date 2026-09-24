@@ -9,8 +9,6 @@ public final class RodKeys {
    public static final NamespacedKey AUTH = key("rod_auth");
    public static final NamespacedKey VERSION = key("rod_version");
    public static final NamespacedKey NONCE = key("rod_nonce");
-   public static final NamespacedKey ORIGIN = key("rod_origin");
-   public static final NamespacedKey SOURCE = key("rod_source");
    /** Written on entities spawned by rods (arrows, skulls, wolves) - value is the caster's UUID. */
    public static final NamespacedKey OWNER = key("owner");
    /** Byte flag on rod projectiles: 1 = never hurt {@link #OWNER}. */

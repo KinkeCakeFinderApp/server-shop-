@@ -25,7 +25,7 @@ public final class SafeLocations {
     *
     * @return a block-centred location, or null when nothing safe is nearby
     */
-   public static Location find(Block start, int horizontalRadius, int verticalRadius) {
+   public static Location find(Block start, int horizontalRadius, int verticalRadius, boolean allowLava) {
       for (int r = 0; r <= horizontalRadius; r++) {
          for (int dy : verticalOrder(verticalRadius)) {
             for (int dx = -r; dx <= r; dx++) {
@@ -34,7 +34,7 @@ public final class SafeLocations {
                      continue;
                   }
                   Block feet = start.getRelative(dx, dy, dz);
-                  if (isSafe(feet)) {
+                  if (isSafe(feet, allowLava)) {
                      return feet.getLocation().add(0.5, 0.0, 0.5);
                   }
                }
@@ -52,7 +52,7 @@ public final class SafeLocations {
       return hit.getRelative(face);
    }
 
-   public static boolean isSafe(Block feet) {
+   public static boolean isSafe(Block feet, boolean allowLava) {
       World world = feet.getWorld();
       int y = feet.getY();
       if (y - 1 < world.getMinHeight() || y + 1 >= world.getMaxHeight()) {
@@ -69,13 +69,20 @@ public final class SafeLocations {
       }
       Block head = feet.getRelative(BlockFace.UP);
       Block ground = feet.getRelative(BlockFace.DOWN);
-      return isClear(feet) && isClear(head)
+      return isClear(feet, allowLava) && isClear(head, allowLava)
             && ground.getType().isSolid()
-            && !HAZARDS.contains(ground.getType());
+            && !isHazard(ground.getType(), allowLava);
    }
 
-   private static boolean isClear(Block block) {
-      return block.isPassable() && !block.isLiquid() && !HAZARDS.contains(block.getType());
+   private static boolean isClear(Block block, boolean allowLava) {
+      if (block.getType() == Material.LAVA) {
+         return allowLava;
+      }
+      return block.isPassable() && !block.isLiquid() && !isHazard(block.getType(), allowLava);
+   }
+
+   private static boolean isHazard(Material material, boolean allowLava) {
+      return (material != Material.LAVA || !allowLava) && HAZARDS.contains(material);
    }
 
    private static int[] verticalOrder(int radius) {

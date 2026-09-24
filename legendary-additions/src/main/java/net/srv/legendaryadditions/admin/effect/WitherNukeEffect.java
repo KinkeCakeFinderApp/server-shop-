@@ -14,9 +14,8 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
 /**
- * "Wither Nuke Shot" from the datapack: wither skulls rain down from 70 blocks above the target
- * with outward horizontal motion and steep downward speed. Skulls are released in small batches
- * per tick instead of all at once.
+ * Wither Nuke Shot: charged wither skulls rain down from high above the target with outward
+ * horizontal motion. Skulls are released in small batches per tick instead of all at once.
  */
 public final class WitherNukeEffect {
    private WitherNukeEffect() {
@@ -30,6 +29,10 @@ public final class WitherNukeEffect {
 
       int[] spawned = {0};
       Bukkit.getRegionScheduler().runAtFixedRate(plugin, origin, task -> {
+         if (!EffectGuards.worldStillLoaded(world)) {
+            task.cancel();
+            return;
+         }
          ThreadLocalRandom random = ThreadLocalRandom.current();
          int batch = Math.min(settings.skullsPerTick(), settings.skullCount() - spawned[0]);
          for (int i = 0; i < batch; i++) {
