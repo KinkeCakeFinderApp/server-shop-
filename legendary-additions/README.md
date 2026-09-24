@@ -100,7 +100,7 @@ net.srv.legendaryadditions
 | `admindimension.admin` | op | all of the above |
 | `legendaryadditions.give` | op | `/legendary_additions give` |
 
-Casting a genuine rod needs no permission. Only admins can obtain rods, and every cast is checked against the signature.
+**Using a rod needs no permission.** Anyone holding a genuine rod can use it, including players with no permissions at all. That means an admin can give or drop rods to normal players. The permissions above only control *getting* rods through the commands. Every use is still checked against the rod's signature, so players can't make their own rods.
 
 ## Rods
 

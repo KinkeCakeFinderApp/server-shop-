@@ -207,6 +207,23 @@ async function run () {
   await cmd('suggestionadmin', 2000)
   record('/suggestionadmin opens GUI', opened, JSON.stringify(chat))
 
+  // A player without any permission can use a rod they were handed, but cannot get new ones.
+  await reset()
+  await cmd('teleportshot', 1200)
+  await equipRod()
+  await cmd('deop RodTester', 1500)
+  chat.length = 0
+  await cmd('stabshot', 1000)
+  await cmd('stab', 1000)
+  const denied = !chat.some(m => m.includes('You received'))
+  record('non-op cannot obtain rods', denied && rodCount() === 1, `rods=${rodCount()} chat=${JSON.stringify(chat)}`)
+  await aimAtGround(15)
+  const from = bot.entity.position.clone()
+  await cast()
+  await sleep(2500)
+  const moved = bot.entity.position.distanceTo(from)
+  record('non-op can use a rod', moved > 8, `moved ${moved.toFixed(1)} blocks; chat=${JSON.stringify(chat)}`)
+
   finish()
 }
 
