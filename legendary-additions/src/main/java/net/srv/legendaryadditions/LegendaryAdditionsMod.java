@@ -9,6 +9,7 @@ import net.srv.legendaryadditions.admin.command.CommandRegistrar;
 import net.srv.legendaryadditions.admin.command.SuggestionsCommand;
 import net.srv.legendaryadditions.admin.dimension.AdminDimension;
 import net.srv.legendaryadditions.admin.effect.ExplosionGuard;
+import net.srv.legendaryadditions.admin.effect.Fx;
 import net.srv.legendaryadditions.admin.effect.RodEffects;
 import net.srv.legendaryadditions.admin.rod.RodAuthenticator;
 import net.srv.legendaryadditions.admin.rod.RodListener;
@@ -43,6 +44,7 @@ public class LegendaryAdditionsMod extends JavaPlugin {
 
       this.saveDefaultConfig();
       this.settings = AdminSettings.load(this.getConfig());
+      Fx.configure(this.settings.rodParticles(), this.settings.rodSounds());
 
       RodAuthenticator authenticator;
       try {

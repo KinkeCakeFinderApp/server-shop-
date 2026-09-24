@@ -28,7 +28,7 @@ public final class LawNukeEffect {
       int warning = settings.warningTicks();
       double radius = settings.radius();
 
-      world.playSound(center, Sound.ENTITY_TNT_PRIMED, SoundCategory.MASTER, 8F, 0.5F);
+      Fx.sound(center, Sound.ENTITY_TNT_PRIMED, SoundCategory.MASTER, 8F, 0.5F);
       int[] tick = {0};
       Bukkit.getRegionScheduler().runAtFixedRate(plugin, center, task -> {
          if (!EffectGuards.worldStillLoaded(world)) {
@@ -51,7 +51,7 @@ public final class LawNukeEffect {
             Fx.particle(payload, Particle.FLAME, 10, radius * 0.1, 0.01);
          }
          if (t % 20 == 0) {
-            world.playSound(center, Sound.ENTITY_TNT_PRIMED, SoundCategory.MASTER, 6F, (float) (0.5 + progress));
+            Fx.sound(center, Sound.ENTITY_TNT_PRIMED, SoundCategory.MASTER, 6F, (float) (0.5 + progress));
          }
       }, 1L, 1L);
    }
@@ -63,7 +63,7 @@ public final class LawNukeEffect {
       int spread = settings.detonationTicks();
       World world = center.getWorld();
 
-      world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, SoundCategory.MASTER, 12F, 0.4F);
+      Fx.sound(center, Sound.ENTITY_GENERIC_EXPLODE, SoundCategory.MASTER, 12F, 0.4F);
       for (int i = 0; i < count; i++) {
          // sqrt keeps the blast density even across the whole disc.
          double distance = Math.sqrt(random.nextDouble()) * settings.radius();

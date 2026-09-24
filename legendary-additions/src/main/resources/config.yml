@@ -5,6 +5,14 @@
 # The fishing hook is never used for targeting. There are NO cooldowns anywhere -
 # "warning-time-ticks" is only the visual charge-up before impact.
 
+# Extra sounds and particles made by the rods (warning beams, markers, charge-up sounds,
+# smoke, impact sounds, teleport sparkles, the break sound of used-up rods...).
+# Off by default. The rods still do their real effect (damage, knockback, explosions,
+# skulls, wolves, arrows, teleport). Vanilla explosions still make their own normal boom.
+rod-effects:
+  sounds: false
+  particles: false
+
 rod-targeting:
   # Maximum ray-trace distance in blocks. On Folia the ray also stops at the edge of the
   # caster's region or at unloaded chunks, so shots into unloaded terrain report "no target".
@@ -22,6 +30,7 @@ orbital-strike:
   radius: 8.0
   damage: 50.0
   knockback: 2.5
+  # Delay before impact. Set to 0 to strike immediately.
   warning-time-ticks: 20
   destroy-blocks: false
   create-fire: false

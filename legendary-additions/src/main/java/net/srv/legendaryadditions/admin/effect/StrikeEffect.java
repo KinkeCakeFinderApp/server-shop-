@@ -36,9 +36,9 @@ public final class StrikeEffect {
       Particle.DustOptions innerDust = new Particle.DustOptions(Color.fromRGB(255, 255, 255), 1.2F);
       World world = center.getWorld();
 
-      world.playSound(center, Sound.BLOCK_BEACON_ACTIVATE, SoundCategory.MASTER, nuke ? 6F : 4F, 0.6F);
+      Fx.sound(center, Sound.BLOCK_BEACON_ACTIVATE, SoundCategory.MASTER, nuke ? 6F : 4F, 0.6F);
       if (nuke) {
-         world.playSound(center, Sound.ENTITY_WITHER_SPAWN, SoundCategory.MASTER, 6F, 0.5F);
+         Fx.sound(center, Sound.ENTITY_WITHER_SPAWN, SoundCategory.MASTER, 6F, 0.5F);
       }
 
       int[] tick = {0};
@@ -61,7 +61,7 @@ public final class StrikeEffect {
                }
             }
             if (t % 10 == 0) {
-               world.playSound(center, Sound.BLOCK_BEACON_POWER_SELECT, SoundCategory.MASTER, nuke ? 5F : 3F,
+               Fx.sound(center, Sound.BLOCK_BEACON_POWER_SELECT, SoundCategory.MASTER, nuke ? 5F : 3F,
                      (float) (0.5 + progress * 1.5));
             }
             if (warning - t <= 10) {
@@ -104,9 +104,9 @@ public final class StrikeEffect {
          Fx.ring(center, radius * 0.5, 0.5, Particle.EXPLOSION, null, 24);
       }
 
-      world.playSound(center, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.MASTER, nuke ? 10F : 6F, nuke ? 0.5F : 0.8F);
-      world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, SoundCategory.MASTER, nuke ? 10F : 6F, nuke ? 0.4F : 0.7F);
-      world.playSound(center, Sound.ENTITY_WARDEN_SONIC_BOOM, SoundCategory.MASTER, nuke ? 8F : 4F, nuke ? 0.5F : 1.0F);
+      Fx.sound(center, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.MASTER, nuke ? 10F : 6F, nuke ? 0.5F : 0.8F);
+      Fx.sound(center, Sound.ENTITY_GENERIC_EXPLODE, SoundCategory.MASTER, nuke ? 10F : 6F, nuke ? 0.4F : 0.7F);
+      Fx.sound(center, Sound.ENTITY_WARDEN_SONIC_BOOM, SoundCategory.MASTER, nuke ? 8F : 4F, nuke ? 0.5F : 1.0F);
 
       Fx.damageArea(center, radius, settings.damage(), settings.knockback(), owner, settings.damageOwner());
 

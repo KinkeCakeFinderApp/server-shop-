@@ -25,7 +25,7 @@ public final class WitherNukeEffect {
       World world = target.getWorld();
       double spawnY = Math.min(target.getY() + settings.spawnHeight(), world.getMaxHeight() - 2);
       Location origin = new Location(world, target.getX(), spawnY, target.getZ());
-      world.playSound(target, Sound.ENTITY_WITHER_SPAWN, SoundCategory.MASTER, 8F, 0.7F);
+      Fx.sound(target, Sound.ENTITY_WITHER_SPAWN, SoundCategory.MASTER, 8F, 0.7F);
 
       int[] spawned = {0};
       Bukkit.getRegionScheduler().runAtFixedRate(plugin, origin, task -> {
@@ -47,7 +47,7 @@ public final class WitherNukeEffect {
             });
          }
          spawned[0] += batch;
-         world.playSound(origin, Sound.ENTITY_WITHER_SHOOT, SoundCategory.MASTER, 6F, 0.6F);
+         Fx.sound(origin, Sound.ENTITY_WITHER_SHOOT, SoundCategory.MASTER, 6F, 0.6F);
          Fx.particle(origin, Particle.LARGE_SMOKE, 15, 2.0, 0.02);
          if (spawned[0] >= settings.skullCount()) {
             task.cancel();

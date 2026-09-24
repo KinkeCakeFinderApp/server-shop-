@@ -139,6 +139,11 @@ Casting a genuine rod needs no permission. Only admins can obtain rods, and ever
 
 Orbital Strike sequence: a target marker and warning particles, warning sounds with rising pitch, a charging beam that descends from the sky, and a burst of sparks just before impact.
 
+**Sounds and particles are off by default.** `rod-effects.sounds` and `rod-effects.particles` in `config.yml` control every extra sound and particle the rods make: warning markers, beams, charge-up sounds, smoke, shockwave rings, teleport sparkles, and the break sound of used-up rods. Set either to `true` to bring them back. With both off:
+- Rods still do their real effect.
+- Vanilla explosions, wither skulls and arrows still make their normal vanilla sounds.
+- The charge-up delay (`warning-time-ticks`) is still there but silent and invisible. Set it to `0` for an immediate strike.
+
 For every rod the counts, radius, damage and power are set in `config.yml`. `damage-owner: false` protects the caster from their own explosions and projectiles.
 
 ### Authentication

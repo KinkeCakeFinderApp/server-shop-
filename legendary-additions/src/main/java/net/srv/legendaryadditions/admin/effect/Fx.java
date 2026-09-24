@@ -8,6 +8,8 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -20,10 +22,32 @@ import org.bukkit.util.Vector;
 
 /** Shared, bounded particle/damage helpers. Everything here must run on the region owning {@code center}. */
 public final class Fx {
+   private static volatile boolean particles = false;
+   private static volatile boolean sounds = false;
+
    private Fx() {
    }
 
+   /** Set from config (rod-effects.particles / rod-effects.sounds). Both default to off. */
+   public static void configure(boolean particlesEnabled, boolean soundsEnabled) {
+      particles = particlesEnabled;
+      sounds = soundsEnabled;
+   }
+
+   public static boolean particlesEnabled() {
+      return particles;
+   }
+
+   public static void sound(Location at, Sound sound, SoundCategory category, float volume, float pitch) {
+      if (sounds) {
+         at.getWorld().playSound(at, sound, category, volume, pitch);
+      }
+   }
+
    public static <T> void particle(Location at, Particle particle, int count, double spread, double speed, T data) {
+      if (!particles) {
+         return;
+      }
       at.getWorld().spawnParticle(particle, at, count, spread, spread, spread, speed, data, true);
    }
 
@@ -33,6 +57,9 @@ public final class Fx {
 
    /** Horizontal ring. Point count is capped so large radii don't flood clients. */
    public static <T> void ring(Location center, double radius, double yOffset, Particle particle, T data, int maxPoints) {
+      if (!particles) {
+         return;
+      }
       World world = center.getWorld();
       int points = Math.max(12, Math.min(maxPoints, (int) (radius * 6)));
       for (int i = 0; i < points; i++) {
@@ -46,6 +73,9 @@ public final class Fx {
    /** Vertical column of particles from {@code bottom} up to {@code bottom + height}. */
    public static <T> void column(Location bottom, double fromHeight, double toHeight, double step, Particle particle, T data,
                                  double spread) {
+      if (!particles) {
+         return;
+      }
       World world = bottom.getWorld();
       double top = Math.min(toHeight, world.getMaxHeight() - bottom.getY());
       for (double h = Math.max(0, fromHeight); h <= top; h += step) {

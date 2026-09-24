@@ -52,6 +52,6 @@ public final class WolfPackEffect {
          });
       }
       Fx.particle(spawn, Particle.POOF, 40, 1.5, 0.05);
-      world.playSound(spawn, Sound.ENTITY_EVOKER_PREPARE_SUMMON, SoundCategory.MASTER, 2F, 1.2F);
+      Fx.sound(spawn, Sound.ENTITY_EVOKER_PREPARE_SUMMON, SoundCategory.MASTER, 2F, 1.2F);
    }
 }

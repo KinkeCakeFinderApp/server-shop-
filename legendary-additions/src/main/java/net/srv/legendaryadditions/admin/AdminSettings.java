@@ -17,7 +17,9 @@ public record AdminSettings(
       WolfRod wolfRod,
       ArrowRod arrowRod,
       String adminWorldKey,
-      Suggestions suggestions) {
+      Suggestions suggestions,
+      boolean rodSounds,
+      boolean rodParticles) {
 
    public record Targeting(double maxDistance, Set<String> disabledWorlds) {}
 
@@ -59,7 +61,7 @@ public record AdminSettings(
             positive(config.getDouble("law-nuke.radius", 45.0), 45.0),
             clamp(config.getInt("law-nuke.explosions", 140), 1, 1000),
             (float) clamp(config.getDouble("law-nuke.explosion-power", 4.0), 0.5, 20.0),
-            clamp(config.getInt("law-nuke.warning-time-ticks", 90), 1, 1200),
+            clamp(config.getInt("law-nuke.warning-time-ticks", 90), 0, 1200),
             clamp(config.getInt("law-nuke.detonation-ticks", 30), 1, 400),
             config.getBoolean("law-nuke.destroy-blocks", true),
             config.getBoolean("law-nuke.create-fire", false),
@@ -108,7 +110,9 @@ public record AdminSettings(
             Math.max(0, config.getInt("suggestions.max-pending-per-player", 5)),
             config.getBoolean("suggestions.allow-delete", true),
             config.getString("suggestions.date-format", "yyyy-MM-dd HH:mm"));
-      return new AdminSettings(targeting, orbital, nuke, teleport, lawNuke, witherNuke, wolfRod, arrowRod, worldKey, suggestions);
+      return new AdminSettings(targeting, orbital, nuke, teleport, lawNuke, witherNuke, wolfRod, arrowRod, worldKey, suggestions,
+            config.getBoolean("rod-effects.sounds", false),
+            config.getBoolean("rod-effects.particles", false));
    }
 
    private static Strike strike(ConfigurationSection s, double radius, double damage, double knockback, int warning,
@@ -120,7 +124,7 @@ public record AdminSettings(
             positive(s.getDouble("radius", radius), radius),
             Math.max(0.0, s.getDouble("damage", damage)),
             Math.max(0.0, s.getDouble("knockback", knockback)),
-            clamp(s.getInt("warning-time-ticks", warning), 1, 1200),
+            clamp(s.getInt("warning-time-ticks", warning), 0, 1200),
             s.getBoolean("destroy-blocks", destroy),
             s.getBoolean("create-fire", fire),
             s.getBoolean("damage-owner", false),

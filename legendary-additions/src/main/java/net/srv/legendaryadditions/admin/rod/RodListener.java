@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import net.srv.legendaryadditions.admin.AdminSettings;
+import net.srv.legendaryadditions.admin.effect.Fx;
 import net.srv.legendaryadditions.admin.effect.RodEffects;
 import net.srv.legendaryadditions.admin.util.Messages;
 import org.bukkit.Location;
@@ -104,9 +105,11 @@ public final class RodListener implements Listener {
       }
       ItemStack shown = current.clone();
       inventory.setItem(hand, removeOne(current));
-      Location at = player.getEyeLocation().add(player.getLocation().getDirection().multiply(0.5));
-      player.getWorld().spawnParticle(Particle.ITEM, at, 5, 0.2, 0.4, 0.2, 0.0, shown);
-      player.getWorld().playSound(player.getLocation(), Sound.ITEM_SHIELD_BREAK, SoundCategory.PLAYERS, 1F, 1F);
+      if (Fx.particlesEnabled()) {
+         Location at = player.getEyeLocation().add(player.getLocation().getDirection().multiply(0.5));
+         player.getWorld().spawnParticle(Particle.ITEM, at, 5, 0.2, 0.4, 0.2, 0.0, shown);
+      }
+      Fx.sound(player.getLocation(), Sound.ITEM_SHIELD_BREAK, SoundCategory.PLAYERS, 1F, 1F);
    }
 
    /** The stack after exactly one item is used: amount - 1, or null when it was the last one. */

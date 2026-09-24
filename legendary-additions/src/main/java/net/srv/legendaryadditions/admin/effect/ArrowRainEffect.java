@@ -48,6 +48,6 @@ public final class ArrowRainEffect {
       }
       Location top = new Location(world, target.getX(), y, target.getZ());
       Fx.particle(top, Particle.CLOUD, 30, settings.gridSize() / 2.0, 0.01);
-      world.playSound(target, Sound.ENTITY_ARROW_SHOOT, SoundCategory.MASTER, 4F, 0.5F);
+      Fx.sound(target, Sound.ENTITY_ARROW_SHOOT, SoundCategory.MASTER, 4F, 0.5F);
    }
 }

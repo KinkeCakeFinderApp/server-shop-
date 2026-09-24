@@ -34,16 +34,20 @@ public final class TeleportEffect {
       destination.setYaw(from.getYaw());
       destination.setPitch(from.getPitch());
 
-      from.getWorld().spawnParticle(Particle.PORTAL, from.clone().add(0, 1, 0), 40, 0.4, 0.8, 0.4, 0.4, null, true);
-      from.getWorld().playSound(from, Sound.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 1F, 1F);
+      if (Fx.particlesEnabled()) {
+         from.getWorld().spawnParticle(Particle.PORTAL, from.clone().add(0, 1, 0), 40, 0.4, 0.8, 0.4, 0.4, null, true);
+      }
+      Fx.sound(from, Sound.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 1F, 1F);
       player.setFallDistance(0F);
       player.teleportAsync(destination, PlayerTeleportEvent.TeleportCause.PLUGIN).thenAccept(success -> {
          if (!success) {
             return;
          }
          Bukkit.getRegionScheduler().execute(plugin, destination, () -> {
-            destination.getWorld().spawnParticle(Particle.REVERSE_PORTAL, destination.clone().add(0, 1, 0), 40, 0.4, 0.8, 0.4, 0.1, null, true);
-            destination.getWorld().playSound(destination, Sound.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 1F, 1.2F);
+            if (Fx.particlesEnabled()) {
+               destination.getWorld().spawnParticle(Particle.REVERSE_PORTAL, destination.clone().add(0, 1, 0), 40, 0.4, 0.8, 0.4, 0.1, null, true);
+            }
+            Fx.sound(destination, Sound.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 1F, 1.2F);
          });
       });
       return true;
