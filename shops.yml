@@ -11475,8 +11475,9 @@ shops:
     icon: minecraft:netherite_pickaxe
     slot: 41
     items:
-      # Items are tagged with LegendaryAdditions' own data keys
-      # (legendaryadditions:item_id) so the plugin's abilities work on them.
+      # FoliaShop only uses name/lore for the menu, so buying runs LegendaryAdditions' own give
+      # command (give-item: false). Buyers get the exact item with every ability working.
+      # Add more (including items from the Legendary Creator) in-game with /shop admin.
       drill:
         enabled: true
         material: minecraft:netherite_pickaxe
@@ -11486,6 +11487,9 @@ shops:
           - "&7Shift right click to toggle 3x3 mode."
         glow: true
         unbreakable: true
+        give-item: false
+        buy-commands:
+          - "[console] legendary_additions give %player% drill"
         amount: 1
         slot: 20
         buy-price:
@@ -11518,6 +11522,9 @@ shops:
         enchantments:
           fortune: 5
           efficiency: 10
+        give-item: false
+        buy-commands:
+          - "[console] legendary_additions give %player% paxel"
         amount: 1
         slot: 21
         buy-price:
@@ -11548,6 +11555,9 @@ shops:
           infinity: 1
           piercing: 2
           vanishing_curse: 1
+        give-item: false
+        buy-commands:
+          - "[console] legendary_additions give %player% embershade"
         amount: 1
         slot: 23
         buy-price:
@@ -11574,6 +11584,9 @@ shops:
           vanishing_curse: 1
           quick_charge: 6
           piercing: 1
+        give-item: false
+        buy-commands:
+          - "[console] legendary_additions give %player% tidefire_crossbow"
         amount: 1
         slot: 24
         buy-price:

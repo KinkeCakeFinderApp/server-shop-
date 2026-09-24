@@ -11,6 +11,12 @@ URL=$(curl -fsS https://fill.papermc.io/v3/projects/folia/versions/26.1.2/builds
   | python3 -c "import json,sys;print(json.load(sys.stdin)['downloads']['server:default']['url'])")
 curl -fsS -o folia.jar "$URL"
 cp "$JAR" plugins/
+# FoliaShop (the /shop plugin) with this repository's shops.yml, for the /shop admin test.
+SHOP_URL=$(curl -fsS "https://api.modrinth.com/v2/project/foliashop/version" \
+  | python3 -c "import json,sys;print(json.load(sys.stdin)[0]['files'][0]['url'])")
+curl -fsSL -o plugins/FoliaShop.jar "$SHOP_URL"
+mkdir -p plugins/FoliaShop
+cp "$ROOT/shops.yml" plugins/FoliaShop/shops.yml
 # Start from a config written by 3.0.0 (visual-less, no block damage) to prove it gets upgraded.
 mkdir -p plugins/LegendaryAdditions
 cat > plugins/LegendaryAdditions/config.yml <<'YML'
@@ -69,4 +75,28 @@ if grep -nE "Exception|Error" server.log | grep -iE "legendaryadditions|net\.srv
   echo "plugin exception on the server"; BOT=1
 fi
 grep -q "Updated config.yml" server.log || { echo "old config was not upgraded"; BOT=1; }
+grep -q "nuke.style: rings" server.log || { echo "old config did not get the nuke rings"; BOT=1; }
+echo "===== legendaries.db ====="
+python3 - <<'PY' || BOT=1
+import sqlite3
+rows = sqlite3.connect("plugins/LegendaryAdditions/legendaries.db").execute(
+    "SELECT id, material, abilities, enchants FROM legendaries").fetchall()
+print(rows)
+assert any(r[0] == "testpick" and r[1] == "minecraft:netherite_pickaxe" and "VEIN_MINE=1" in r[2]
+           and "TREE_CAPITATOR=1" in r[2] and "minecraft:efficiency=10" in r[3] for r in rows), "testpick row missing or wrong"
+PY
+echo "===== shops.yml entries added by /shop admin ====="
+grep -n -A30 "^      testpick:" plugins/FoliaShop/shops.yml || { echo "testpick not in shops.yml"; BOT=1; }
+grep -q "legendary_additions give %player% testpick" plugins/FoliaShop/shops.yml || { echo "no give command for testpick"; BOT=1; }
+python3 - <<'PY' || BOT=1
+import yaml
+items = yaml.safe_load(open("plugins/FoliaShop/shops.yml", encoding="utf-8"))["shops"]["legendary"]["items"]
+print("testpick:", items.get("testpick"))
+print("diamond_block:", items.get("diamond_block"))
+assert items["testpick"]["give-item"] is False
+assert items["testpick"]["buy-price"]["amount"] == 50000
+assert items["diamond_block"]["material"] == "minecraft:diamond_block"
+assert items["diamond_block"]["sell-price"]["amount"] == 300
+PY
+grep -iE "FoliaShop|foliashop" server.log | head -20
 exit $BOT
