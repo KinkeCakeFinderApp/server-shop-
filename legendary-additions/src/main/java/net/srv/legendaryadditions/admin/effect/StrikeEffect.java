@@ -1,9 +1,8 @@
 package net.srv.legendaryadditions.admin.effect;
 
 import java.util.UUID;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.srv.legendaryadditions.admin.AdminSettings;
+import net.srv.legendaryadditions.admin.util.Messages;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -123,8 +122,8 @@ public final class StrikeEffect {
       }
       Player caster = Bukkit.getPlayer(owner);
       if (caster != null) {
-         caster.sendActionBar(Component.text((nuke ? "Nuke" : "Orbital Strike") + " hit " + hit
-               + (hit == 1 ? " target" : " targets"), NamedTextColor.RED));
+         String report = (nuke ? "Nuke" : "Orbital Strike") + " hit " + hit + (hit == 1 ? " target." : " targets.");
+         caster.getScheduler().run(plugin, t -> Messages.info(caster, report), null);
       }
    }
 }

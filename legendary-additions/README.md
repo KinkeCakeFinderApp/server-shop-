@@ -129,7 +129,7 @@ Casting a genuine rod needs no permission. Only admins can obtain rods, and ever
 
 | Rod | Effect |
 |---|---|
-| Orbital Strike | Instant impact at the target: damage and knockback to everything within 8 blocks, and a silent crater (radius 4). Your action bar says how many targets were hit. |
+| Orbital Strike | Instant impact at the target: damage and knockback to everything within 8 blocks, and a silent crater (radius 4). A chat message tells you how many targets were hit. |
 | Nuke Shot | Like the Orbital Strike but bigger: 20-block damage radius, much more damage, stronger knockback and a silent crater of radius 9. |
 | Law-Nuke Shot | 140 TNT-strength blasts ripple across a 45-block radius (an optional fuse is set by `warning-time-ticks`). Each blast runs on the region that owns its own location. |
 | Wither Nuke Shot | 160 charged wither skulls rain from 70 blocks above the target, released 20 per tick. |

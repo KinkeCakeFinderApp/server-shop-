@@ -109,7 +109,7 @@ async function run () {
       record(command + ' reusable', rodCount() === before, `rods ${before}->${rodCount()}`)
       const ground = bot.blockAt(new Vec3(10, -61, 0))
       record(command + ' crater', ground && ground.name === 'air', `block under target is ${ground && ground.name}`)
-      record(command + ' action bar', actionBars.some(m => m.includes('hit')), JSON.stringify(actionBars))
+      record(command + ' hit report', chat.some(m => / hit [1-9][0-9]* targets?\./.test(m)), JSON.stringify(chat))
     })
   }
 
