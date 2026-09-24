@@ -65,8 +65,8 @@ public final class LawNukeEffect {
 
       Fx.sound(center, Sound.ENTITY_GENERIC_EXPLODE, SoundCategory.MASTER, 12F, 0.4F);
       for (int i = 0; i < count; i++) {
-         // sqrt keeps the blast density even across the whole disc.
-         double distance = Math.sqrt(random.nextDouble()) * settings.radius();
+         // The first blast always lands on the exact target; sqrt keeps the rest evenly spread.
+         double distance = i == 0 ? 0.0 : Math.sqrt(random.nextDouble()) * settings.radius();
          double angle = random.nextDouble(Math.PI * 2);
          double x = center.getX() + Math.cos(angle) * distance;
          double z = center.getZ() + Math.sin(angle) * distance;
