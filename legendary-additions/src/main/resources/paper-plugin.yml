@@ -1,0 +1,53 @@
+name: LegendaryAdditions
+version: '${version}'
+main: net.srv.legendaryadditions.LegendaryAdditionsMod
+bootstrapper: net.srv.legendaryadditions.LegendaryAdditionsBootstrap
+api-version: '26.1'
+folia-supported: true
+description: Legendary items, authenticated admin rods and a persistent Admin dimension.
+authors: [MCreator, srv]
+
+permissions:
+  legendaryadditions.give:
+    description: Allows /legendary_additions give.
+    default: op
+  admindimension.use:
+    description: Allows casting genuine special rods.
+    default: true
+  admindimension.admin:
+    description: Allows /admin and /admin return.
+    default: op
+  admindimension.orbitalrod:
+    description: Allows /stab and /stabshot.
+    default: op
+  admindimension.nukerod:
+    description: Allows /nuke and /nukeshot.
+    default: op
+  admindimension.teleportrod:
+    description: Allows /teleportshot.
+    default: op
+  admindimension.lawnukerod:
+    description: Allows /lawnuke and /lawnukeshot.
+    default: op
+  admindimension.withernukerod:
+    description: Allows /withernuke and /withernukeshot.
+    default: op
+  admindimension.wolfrod:
+    description: Allows /wolf and /wolfshot.
+    default: op
+  admindimension.arrowrod:
+    description: Allows /arrow and /arrowshot.
+    default: op
+  admindimension.*:
+    description: All admin rod and dimension permissions.
+    default: op
+    children:
+      admindimension.use: true
+      admindimension.admin: true
+      admindimension.orbitalrod: true
+      admindimension.nukerod: true
+      admindimension.teleportrod: true
+      admindimension.lawnukerod: true
+      admindimension.withernukerod: true
+      admindimension.wolfrod: true
+      admindimension.arrowrod: true

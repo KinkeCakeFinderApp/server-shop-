@@ -1,7 +1,7 @@
 package net.srv.legendaryadditions.custom;
 
 import java.util.EnumSet;
-import java.util.HashSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Set;
 import java.util.UUID;
 import org.bukkit.FluidCollisionMode;
@@ -23,7 +23,8 @@ public class RiftcasterListener implements Listener {
    private static final double SOUND_RADIUS = 16.0;
    private static final double LANDED_CHECK_DISTANCE = 1.5;
    private static final Set<State> REEL_STATES = EnumSet.of(State.REEL_IN, State.CAUGHT_FISH, State.CAUGHT_ENTITY, State.FAILED_ATTEMPT);
-   private final Set<UUID> inGroundHooks = new HashSet<>();
+   // Concurrent: fish events fire on many Folia region threads at once.
+   private final Set<UUID> inGroundHooks = ConcurrentHashMap.newKeySet();
 
    @EventHandler
    public void onPlayerFish(PlayerFishEvent event) {
@@ -47,13 +48,9 @@ public class RiftcasterListener implements Listener {
                   Location destination = hookLocation.clone();
                   destination.setYaw(player.getLocation().getYaw());
                   destination.setPitch(player.getLocation().getPitch());
-                  player.teleport(destination);
-
-                  for (Player nearby : destination.getWorld().getPlayers()) {
-                     if (nearby.getLocation().distance(destination) <= 16.0) {
-                        nearby.playSound(destination, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0F, 1.0F);
-                     }
-                  }
+                  // Folia: teleports must be asynchronous.
+                  player.teleportAsync(destination);
+                  destination.getWorld().playSound(destination, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0F, 1.0F);
                }
             }
          }

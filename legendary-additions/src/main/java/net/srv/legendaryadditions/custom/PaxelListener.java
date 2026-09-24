@@ -24,7 +24,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 public class PaxelListener implements Listener {
@@ -205,16 +204,17 @@ public class PaxelListener implements Listener {
    }
 
    private void startHasteTask(Plugin plugin) {
-      (new BukkitRunnable() {
-         public void run() {
-            for (Player player : Bukkit.getOnlinePlayers()) {
+      // Folia: one global timer hands each player's check to that player's own scheduler.
+      Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, timer -> {
+         for (Player player : Bukkit.getOnlinePlayers()) {
+            player.getScheduler().run(plugin, task -> {
                ItemStack main = player.getInventory().getItemInMainHand();
                ItemStack off = player.getInventory().getItemInOffHand();
                if (Paxel.isPaxel(main) || Paxel.isPaxel(off)) {
                   player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 60, 4, true, false, false));
                }
-            }
+            }, null);
          }
-      }).runTaskTimer(plugin, 0L, 40L);
+      }, 1L, 40L);
    }
 }

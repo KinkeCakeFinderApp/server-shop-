@@ -1,0 +1,94 @@
+# LegendaryAdditions - admin rods & Admin dimension
+#
+# Every special rod activates the instant it is cast: the plugin ray-traces from the
+# player's eyes and the exact block/entity under the crosshair becomes the target.
+# The fishing hook is never used. There are no cooldowns.
+
+rod-targeting:
+  # Maximum ray-trace distance in blocks. On Folia the ray also stops at the edge of
+  # the caster's region / loaded chunks, so very long shots into unloaded terrain miss.
+  max-distance: 256.0
+  # Worlds (by name, e.g. "world_nether") where special rods do nothing.
+  disabled-worlds: []
+
+# /stab (single-use shulker) and /stabshot (reusable)
+orbital-strike:
+  radius: 8.0
+  damage: 50.0
+  knockback: 2.5
+  warning-time-ticks: 20
+  destroy-blocks: false
+  create-fire: false
+  damage-owner: false
+  # Explosion strength used only when destroy-blocks is true (TNT = 4).
+  block-damage-power: 5.0
+
+# /nuke (single-use shulker) and /nukeshot (reusable)
+nuke:
+  radius: 20.0
+  damage: 150.0
+  knockback: 5.0
+  warning-time-ticks: 60
+  destroy-blocks: true
+  create-fire: true
+  damage-owner: false
+  block-damage-power: 10.0
+
+# /teleportshot (reusable only)
+teleport:
+  max-distance: 100.0
+  # How far (blocks) around the looked-at spot to search for a safe standing place.
+  safe-search-radius: 2
+
+# ---- Rods imported from the Orbital Strike Cannon datapack ----
+
+# /lawnuke and /lawnukeshot - "Law-Nuke Shot": a huge carpet of TNT detonations.
+# The datapack summoned 1836 primed TNT; the plugin reproduces the blast pattern with
+# direct explosions instead of entities.
+law-nuke:
+  radius: 45.0
+  explosions: 140
+  explosion-power: 4.0
+  # Delay before detonation (the datapack TNT fuse was 90 ticks).
+  warning-time-ticks: 90
+  # Detonations are spread over this many ticks.
+  detonation-ticks: 30
+  destroy-blocks: true
+  create-fire: false
+  damage-owner: false
+
+# /withernuke and /withernukeshot - "Wither Nuke Shot": wither skulls rain down from
+# 70 blocks above the target (the datapack used 1296 skulls).
+wither-nuke:
+  skull-count: 160
+  spawn-height: 70.0
+  max-horizontal-speed: 2.3
+  charged-skulls: true
+  destroy-blocks: true
+  damage-owner: false
+  skulls-per-tick: 20
+
+# /wolf and /wolfshot - "Wolf Rod": summons an armoured, buffed wolf pack tamed to the caster.
+wolf-rod:
+  count: 53
+  wolf-armor: true
+  strength-amplifier: 1
+  speed-amplifier: 1
+  buff-duration-ticks: 1800
+  fire-resistance-ticks: 9600
+  # 0 = wolves stay forever (datapack behaviour). Otherwise they vanish after this many seconds.
+  lifetime-seconds: 0
+
+# /arrow and /arrowshot - "Arrow Shot": a 5x5 double layer of arrows fired straight down.
+arrow-shot:
+  grid-size: 5
+  layers: 2
+  spawn-height: 86.0
+  speed: 10.0
+  damage: 70.0
+  second-layer-damage: 80.0
+  damage-owner: false
+
+admin-dimension:
+  # Namespaced key of the dimension the plugin ships as a built-in datapack.
+  world: "adminplugin:admin"
