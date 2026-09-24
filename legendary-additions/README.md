@@ -130,8 +130,8 @@ Casting a genuine rod needs no permission. Only admins can obtain rods, and ever
 | Rod | Effect |
 |---|---|
 | Orbital Strike | The sequence below, then an impact: shockwave, damage and knockback. Block damage and fire are optional. |
-| Nuke Shot | A larger and stronger version: a wide soul-fire beam, several explosion emitters, a double shockwave and a mushroom cloud. By default it breaks blocks and sets fires. |
-| Law-Nuke Shot | After a 90-tick fuse, 140 TNT-strength blasts ripple across a 45-block radius. Each blast runs on the region that owns its own location. |
+| Nuke Shot | Larger radius, much more damage and stronger knockback. The optional visuals are a wide soul-fire beam, several explosion emitters, a double shockwave and a mushroom cloud. Block breaking and fire are optional and off by default. |
+| Law-Nuke Shot | 140 TNT-strength blasts ripple across a 45-block radius (an optional fuse is set by `warning-time-ticks`). Each blast runs on the region that owns its own location. |
 | Wither Nuke Shot | 160 charged wither skulls rain from 70 blocks above the target, released 20 per tick. |
 | Wolf Rod | 53 wolves with wolf armor, Strength II, Regeneration, Speed II and Fire Resistance, tamed to the caster. They can be made temporary. |
 | Arrow Rod | A 5×5 grid of arrows, two layers deep (damage 70 and 80), fired straight down at 10 blocks/tick. |
@@ -142,7 +142,8 @@ Orbital Strike sequence: a target marker and warning particles, warning sounds w
 **Sounds and particles are off by default.** `rod-effects.sounds` and `rod-effects.particles` in `config.yml` control every extra sound and particle the rods make: warning markers, beams, charge-up sounds, smoke, shockwave rings, teleport sparkles, and the break sound of used-up rods. Set either to `true` to bring them back. With both off:
 - Rods still do their real effect.
 - Vanilla explosions, wither skulls and arrows still make their normal vanilla sounds.
-- The charge-up delay (`warning-time-ticks`) is still there but silent and invisible. Set it to `0` for an immediate strike.
+- There is no target warning: `warning-time-ticks` defaults to `0`, so strikes land the moment you cast.
+- The Nuke defaults to `destroy-blocks: false` and `create-fire: false`. Vanilla explosions always show explosion particles and play the boom sound, so with these off the Nuke makes no explosions and only deals damage and knockback. Turn them back on if you want terrain damage. The Law-Nuke is made of explosions, so it still shows them.
 
 For every rod the counts, radius, damage and power are set in `config.yml`. `damage-owner: false` protects the caster from their own explosions and projectiles.
 

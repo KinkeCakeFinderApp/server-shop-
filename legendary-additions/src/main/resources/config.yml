@@ -3,7 +3,7 @@
 # Every special rod fires the instant it is cast: the plugin ray-traces from the caster's
 # eyes along their exact look direction, locks the hit point, then runs the effect.
 # The fishing hook is never used for targeting. There are NO cooldowns anywhere -
-# "warning-time-ticks" is only the visual charge-up before impact.
+# "warning-time-ticks" is an optional delay before impact (0 by default).
 
 # Extra sounds and particles made by the rods (warning beams, markers, charge-up sounds,
 # smoke, impact sounds, teleport sparkles, the break sound of used-up rods...).
@@ -42,9 +42,12 @@ nuke:
   radius: 20.0
   damage: 150.0
   knockback: 5.0
-  warning-time-ticks: 60
-  destroy-blocks: true
-  create-fire: true
+  # Delay before impact (0 = instant, no target warning).
+  warning-time-ticks: 0
+  # Breaking blocks / fire use vanilla explosions, which always show explosion
+  # particles and play the explosion sound. Off by default so the nuke is silent.
+  destroy-blocks: false
+  create-fire: false
   damage-owner: false
   block-damage-power: 10.0
 
@@ -53,7 +56,8 @@ law-nuke:
   radius: 45.0
   explosions: 140
   explosion-power: 4.0
-  warning-time-ticks: 90
+  # Fuse before the blasts (0 = instant).
+  warning-time-ticks: 0
   # Detonations ripple outward over this many ticks.
   detonation-ticks: 30
   destroy-blocks: true

@@ -69,6 +69,9 @@ public final class StrikeEffect {
             }
          } else if (t == warning) {
             impact(plugin, center, settings, nuke, owner);
+            if (!Fx.particlesEnabled()) {
+               task.cancel();
+            }
          } else if (t <= warning + aftermath) {
             int a = t - warning;
             double shock = radius * 1.4 * a / aftermath + 1.0;

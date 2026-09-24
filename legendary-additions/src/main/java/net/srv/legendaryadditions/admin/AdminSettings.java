@@ -49,8 +49,8 @@ public record AdminSettings(
       Targeting targeting = new Targeting(
             positive(config.getDouble("rod-targeting.max-distance", 256.0), 256.0),
             disabled.stream().map(String::toLowerCase).collect(Collectors.toUnmodifiableSet()));
-      Strike orbital = strike(config.getConfigurationSection("orbital-strike"), 8.0, 50.0, 2.5, 20, false, false, 5.0);
-      Strike nuke = strike(config.getConfigurationSection("nuke"), 20.0, 150.0, 5.0, 60, true, true, 10.0);
+      Strike orbital = strike(config.getConfigurationSection("orbital-strike"), 8.0, 50.0, 2.5, 0, false, false, 5.0);
+      Strike nuke = strike(config.getConfigurationSection("nuke"), 20.0, 150.0, 5.0, 0, false, false, 10.0);
 
       Teleport teleport = new Teleport(
             positive(config.getDouble("teleport-rod.max-distance", 100.0), 100.0),
@@ -61,7 +61,7 @@ public record AdminSettings(
             positive(config.getDouble("law-nuke.radius", 45.0), 45.0),
             clamp(config.getInt("law-nuke.explosions", 140), 1, 1000),
             (float) clamp(config.getDouble("law-nuke.explosion-power", 4.0), 0.5, 20.0),
-            clamp(config.getInt("law-nuke.warning-time-ticks", 90), 0, 1200),
+            clamp(config.getInt("law-nuke.warning-time-ticks", 0), 0, 1200),
             clamp(config.getInt("law-nuke.detonation-ticks", 30), 1, 400),
             config.getBoolean("law-nuke.destroy-blocks", true),
             config.getBoolean("law-nuke.create-fire", false),
