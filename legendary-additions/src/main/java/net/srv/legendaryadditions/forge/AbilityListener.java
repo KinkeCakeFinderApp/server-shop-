@@ -133,19 +133,26 @@ public final class AbilityListener implements Listener {
       if (extra.isEmpty()) {
          return;
       }
-      CHAINING.set(true);
-      try {
-         for (Block b : extra) {
-            if (player.getInventory().getItemInMainHand().getType().isAir()) {
-               break; // the tool broke
-            }
-            if (Bukkit.isOwnedByCurrentRegion(b)) {
-               player.breakBlock(b);
-            }
+      // Break the extra blocks on the next tick. Breaking them from inside this event would
+      // interfere with the block the player is breaking right now (it would stay in place).
+      Bukkit.getRegionScheduler().run(this.plugin, block.getLocation(), task -> {
+         if (!player.isOnline() || !Bukkit.isOwnedByCurrentRegion(player)) {
+            return;
          }
-      } finally {
-         CHAINING.set(false);
-      }
+         CHAINING.set(true);
+         try {
+            for (Block b : extra) {
+               if (player.getInventory().getItemInMainHand().getType().isAir()) {
+                  break; // the tool broke
+               }
+               if (Bukkit.isOwnedByCurrentRegion(b) && !b.getType().isAir()) {
+                  player.breakBlock(b);
+               }
+            }
+         } finally {
+            CHAINING.set(false);
+         }
+      });
    }
 
    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

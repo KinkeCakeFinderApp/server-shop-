@@ -362,7 +362,8 @@ async function abilities () {
     record('give command hands out custom legendary', true, 'netherite_pickaxe received')
     await bot.equip(pick, 'hand')
     // mineflayer cannot read 26.1 enchantment data when it works out dig time; the tool breaks these instantly anyway.
-    bot.digTime = () => 150
+    // Iron ore is instant for this pickaxe; a log with a pickaxe takes about 3 seconds.
+    bot.digTime = block => (block && block.name.endsWith('_log') ? 3500 : 150)
 
     // Vein Miner + Auto Smelt + Telekinesis: an 18 block iron vein, mine one block.
     await cmd('fill 2 -60 -1 4 -59 1 iron_ore', 600)
@@ -382,7 +383,7 @@ async function abilities () {
     await cmd('fill 2 -60 3 2 -51 3 oak_log', 600)
     const charcoalBefore = count('charcoal')
     await bot.dig(bot.blockAt(new Vec3(2, -60, 3)), true)
-    await sleep(1200)
+    await sleep(1500)
     let logs = 0
     for (let y = -60; y <= -51; y++) {
       const b = bot.blockAt(new Vec3(2, y, 3))
