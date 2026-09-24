@@ -353,7 +353,7 @@ Checked automatically:
 - **In-game bot test** (CI job `ingame-rod-test`, script `.github/scripts/ingame-rod-test.sh`): a real Folia 26.1.2 server with FoliaShop and this repository's `shops.yml`, and a mineflayer bot that joins as a player and:
   - casts every rod: the Orbital Strike kills its target and leaves a crater; the Nuke drops 669 TNT whose blasts kill the target and leave a hole on each ring; the other rods do their effect;
   - builds a legendary in the Legendary Creator by clicking the GUI and typing in chat (netherite pickaxe, Vein Miner, Tree Capitator, Auto Smelt, Telekinesis, Efficiency 10), saves it, and the script checks the row in `legendaries.db`;
-  - mines an 18-block iron vein with it (all of it breaks and 18 iron ingots land in the inventory) and chops a 10-log trunk (all of it falls, as charcoal); a plain netherite pickaxe breaks only one block;
+  - mines a 12-block iron vein with it (all of it breaks and 12 iron ingots land in the inventory) and chops a 10-log trunk (all of it falls, as charcoal); a plain netherite pickaxe breaks only one block;
   - adds that legendary and a diamond block to the Legendary shop through `/shop admin`, searches for it, checks `shops.yml`, and sees it in FoliaShop's own `/shop search`;
   - checks the permission rules (a non-op can use a rod but can't get one).
 

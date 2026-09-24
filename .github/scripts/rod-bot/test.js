@@ -365,19 +365,19 @@ async function abilities () {
     // Iron ore is instant for this pickaxe; a log with a pickaxe takes about 3 seconds.
     bot.digTime = block => (block && block.name.endsWith('_log') ? 3500 : 150)
 
-    // Vein Miner + Auto Smelt + Telekinesis: an 18 block iron vein, mine one block.
-    await cmd('fill 2 -60 -1 4 -59 1 iron_ore', 600)
+    // Vein Miner (level 1 = up to 16 extra blocks) + Auto Smelt + Telekinesis: a 12 block iron vein, mine one block.
+    await cmd('fill 2 -60 -1 3 -59 1 iron_ore', 600)
     const ingotsBefore = count('iron_ingot')
     await bot.dig(bot.blockAt(new Vec3(2, -60, 0)), true)
     await sleep(1200)
     let left = 0
-    for (let x = 2; x <= 4; x++) for (let y = -60; y <= -59; y++) for (let z = -1; z <= 1; z++) {
+    for (let x = 2; x <= 3; x++) for (let y = -60; y <= -59; y++) for (let z = -1; z <= 1; z++) {
       const b = bot.blockAt(new Vec3(x, y, z))
       if (b && b.name === 'iron_ore') left++
     }
-    record('vein miner', left === 0, `iron ore left=${left} of 18`)
+    record('vein miner', left === 0, `iron ore left=${left} of 12`)
     const ingots = count('iron_ingot') - ingotsBefore
-    record('auto smelt + telekinesis', ingots >= 18 && count('raw_iron') === 0, `iron ingots in inventory=${ingots}, raw iron=${count('raw_iron')}`)
+    record('auto smelt + telekinesis', ingots >= 12 && count('raw_iron') === 0, `iron ingots in inventory=${ingots}, raw iron=${count('raw_iron')}`)
 
     // Tree Capitator: a 10 log trunk, chop the bottom log.
     await cmd('fill 2 -60 3 2 -51 3 oak_log', 600)
@@ -396,15 +396,15 @@ async function abilities () {
     await cmd('clear', 300)
     await cmd('give @s netherite_pickaxe', 600)
     await bot.equip(bot.inventory.items().find(i => i.name === 'netherite_pickaxe'), 'hand')
-    await cmd('fill 2 -60 -1 4 -59 1 iron_ore', 600)
+    await cmd('fill 2 -60 -1 3 -59 1 iron_ore', 600)
     await bot.dig(bot.blockAt(new Vec3(2, -60, 0)), true)
     await sleep(800)
     let plain = 0
-    for (let x = 2; x <= 4; x++) for (let y = -60; y <= -59; y++) for (let z = -1; z <= 1; z++) {
+    for (let x = 2; x <= 3; x++) for (let y = -60; y <= -59; y++) for (let z = -1; z <= 1; z++) {
       const b = bot.blockAt(new Vec3(x, y, z))
       if (b && b.name === 'iron_ore') plain++
     }
-    record('plain pickaxe has no abilities', plain === 17, `iron ore left=${plain} (expected 17)`)
+    record('plain pickaxe has no abilities', plain === 11, `iron ore left=${plain} (expected 11)`)
   } catch (e) {
     record('abilities', false, 'exception ' + e.stack)
   }
