@@ -1,0 +1,26 @@
+name: FoliaShop probe (temporary)
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/quirky-gates-etjey0]
+    paths: [.github/workflows/foliashop-probe.yml]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download FoliaShop and dump its descriptor and configs
+        run: |
+          set -x
+          curl -sSf "https://api.modrinth.com/v2/project/foliashop" | jq '{title, description, source_url, issues_url, wiki_url, game_versions: .game_versions[-5:], loaders}'
+          curl -sSf "https://api.modrinth.com/v2/project/foliashop/version" > versions.json
+          jq -r '.[:8][] | "\(.version_number) \(.date_published) \(.game_versions|join(",")) \(.files[0].url)"' versions.json
+          url=$(jq -r '.[0].files[0].url' versions.json)
+          curl -sSfL "$url" -o foliashop.jar
+          unzip -l foliashop.jar | grep -v '\.class$'
+          mkdir x && cd x && unzip -q ../foliashop.jar
+          for f in plugin.yml paper-plugin.yml config.yml messages.yml lang/en.yml; do [ -f "$f" ] && { echo "===== $f"; cat "$f"; }; done
+          for f in $(find . -name '*.yml' -not -name plugin.yml -not -name paper-plugin.yml -not -name config.yml | head -20); do echo "===== $f (head 120)"; head -120 "$f"; done
+          echo "===== strings mentioning reload/editor/admin/api"
+          find . -name '*.class' | xargs -I{} sh -c 'strings -n 4 "{}" | grep -iE "^(reload|editor|admin|foliashop\.[a-z.]+|/shop.*)$" | sed "s|^|{}: |"' | sort -u | head -150
+          echo "===== class list (non-lib)"
+          find . -name '*.class' | grep -viE 'shaded|libs|kotlin|org/bstats|com/zaxxer' | head -200
