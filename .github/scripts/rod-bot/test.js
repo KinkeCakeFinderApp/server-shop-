@@ -7,6 +7,7 @@ const results = []
 const chat = []
 const spawned = []
 const actionBars = []
+const gone = new Set()
 let bot
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
@@ -103,10 +104,8 @@ async function run () {
       if (!z) { record(command, false, 'test zombie did not spawn'); return }
       await cast()
       await sleep(2500)
-      const alive = bot.entities[z.id]
-      const health = alive && alive.health
-      const hit = !alive || (health !== undefined && health < 20)
-      record(command, hit, `zombie ${alive ? 'alive health=' + health : 'gone/dead'}; rods ${before}->${rodCount()}; chat=${JSON.stringify(chat)}`)
+      const dead = gone.has(z.id)
+      record(command, dead, `husk ${dead ? 'killed' : 'still alive'}; chat=${JSON.stringify(chat)}`)
       record(command + ' reusable', rodCount() === before, `rods ${before}->${rodCount()}`)
       const ground = bot.blockAt(new Vec3(10, -61, 0))
       record(command + ' crater', ground && ground.name === 'air', `block under target is ${ground && ground.name}`)
@@ -118,8 +117,8 @@ async function run () {
     const z = await aimAtZombie()
     await cast()
     await sleep(4000)
-    const alive = z && bot.entities[z.id]
-    record('lawnukeshot', !alive || alive.health < 20, `zombie ${alive ? 'health=' + alive.health : 'gone'}; chat=${JSON.stringify(chat)}`)
+    const dead = z && gone.has(z.id)
+    record('lawnukeshot', !!dead, `husk ${dead ? 'killed' : 'still alive'}; chat=${JSON.stringify(chat)}`)
   })
 
   await shotRod('withernukeshot', async before => {
@@ -220,9 +219,12 @@ function finish () {
 
 bot = mineflayer.createBot({ host: '127.0.0.1', port: 25565, username: 'RodTester', auth: 'offline' })
 bot.on('messagestr', (m, position) => {
-  if (position === 'game_info') { actionBars.push(m); log('action bar:', m); return }
+  if (position === 'game_info') { if (!actionBars.includes(m)) actionBars.push(m); return }
   chat.push(m); log('chat:', m)
 })
+bot.on('actionBar', m => { const t = m.toString(); actionBars.push(t); log('action bar:', t) })
+bot.on('entityDead', e => gone.add(e.id))
+bot.on('entityGone', e => gone.add(e.id))
 bot.on('entitySpawn', e => { if (e !== bot.entity) spawned.push(e.name) })
 bot.on('kicked', r => { console.log('KICKED', JSON.stringify(r)); process.exit(2) })
 bot.on('error', e => { console.log('ERROR', e); process.exit(2) })
