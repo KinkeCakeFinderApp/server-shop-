@@ -1,0 +1,28 @@
+name: API probe (temporary)
+on:
+  push:
+    paths:
+      - '.github/workflows/api-probe.yml'
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Folia server data
+        run: |
+          set -x
+          curl -s https://fill.papermc.io/v3/projects/folia/versions/26.1.2/builds/latest | tee build.json | head -c 3000; echo
+          URL=$(python3 -c "import json;d=json.load(open('build.json'));print(d['downloads']['server:default']['url'])")
+          curl -s -o folia.jar "$URL"; ls -la folia.jar
+          java -Dpaperclip.patchonly=true -jar folia.jar || true
+          find . -name '*.jar' -path '*versions*' ; ls libraries | head -80
+          find libraries -iname '*sqlite*' -o -iname '*mysql*' -o -iname '*h2*' | head
+          V=$(find . -path '*versions*' -name '*.jar' | head -1)
+          mkdir v && cd v && unzip -q -o ../$V
+          cat version.json
+          for f in dimension_type/the_end.json dimension_type/overworld.json dimension/the_end.json worldgen/biome/end_highlands.json; do echo "=== $f"; cat data/minecraft/$f 2>/dev/null || find . -path "*$f"; echo; done
+          ls data/minecraft/dimension_type data/minecraft/worldgen/noise_settings 2>/dev/null
+          unzip -l ../folia.jar | grep -i -E 'sqlite|mysql' | head
