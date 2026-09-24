@@ -61,3 +61,40 @@ jobs:
         with:
           name: folia-server-logs
           path: server/boot*.log
+
+  ingame-rod-test:
+    # A mineflayer bot joins a real Folia 26.1.2 server and casts every rod.
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install bot
+        working-directory: .github/scripts/rod-bot
+        run: npm install --no-audit --no-fund
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: legendary_additions
+          path: jar
+
+      - name: Bot casts every rod
+        run: bash .github/scripts/ingame-rod-test.sh
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ingame-test-logs
+          path: |
+            ingame/server.log
+            ingame/bot.log

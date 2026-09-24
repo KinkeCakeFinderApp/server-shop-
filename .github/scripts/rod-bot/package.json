@@ -1,0 +1,9 @@
+{
+  "name": "rod-bot",
+  "private": true,
+  "description": "CI-only: a bot player that casts every admin rod on a test Folia server.",
+  "dependencies": {
+    "mineflayer": "^4.39.0",
+    "vec3": "^0.1.10"
+  }
+}

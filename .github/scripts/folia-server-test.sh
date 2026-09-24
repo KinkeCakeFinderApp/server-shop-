@@ -32,7 +32,7 @@ boot() {
   done
   grep -q "SELFTEST COMPLETE" "boot$n.log" || { echo "self-test $n did not finish"; tail -150 "boot$n.log"; exit 1; }
   for cmd in "stab" "stabshot" "nuke" "nukeshot" "lawnuke" "lawnukeshot" "withernuke" "withernukeshot" \
-             "wolfrod" "wolfrod shot" "arrowrod" "arrowrodshot" "teleportshot" "stab NotOnline" "suggestions" "admin"; do
+             "wolfrod" "wolfrod shot" "arrowrod" "arrowrodshot" "teleportshot" "stab NotOnline" "suggestions" "suggestionadmin" "admin"; do
     echo "$cmd" >&3
   done
   sleep 5
@@ -60,6 +60,7 @@ for n in 1 2; do
   test "$(grep -c 'Console must name a player' "boot$n.log")" -ge 13 || { echo "not every rod command responded in boot $n"; fail=1; }
   grep -q "Player 'NotOnline' is not online" "boot$n.log" || { echo "player argument check missing in boot $n"; fail=1; }
   grep -q "Only players can open the suggestions GUI" "boot$n.log" || { echo "/suggestions missing in boot $n"; fail=1; }
+  grep -q "Only players can open the suggestion admin GUI" "boot$n.log" || { echo "/suggestionadmin missing in boot $n"; fail=1; }
   grep -q "Only players can use /admin" "boot$n.log" || { echo "/admin missing in boot $n"; fail=1; }
   if grep -qi "Unknown or incomplete command" "boot$n.log"; then echo "an expected command is not registered in boot $n"; fail=1; fi
 done

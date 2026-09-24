@@ -87,6 +87,10 @@ public final class RodListener implements Listener {
          Messages.error(player, Messages.ACTIVATION_FAILED);
          return;
       }
+      Location at = target.center();
+      this.plugin.getLogger().info(player.getName() + " used " + kind.typeId(inspection.reusable())
+            + (activated ? "" : " (not activated)") + " at " + at.getWorld().getName() + " "
+            + at.getBlockX() + " " + at.getBlockY() + " " + at.getBlockZ());
       if (activated && !inspection.reusable()) {
          this.consumeOne(player, hand, inspection.nonce());
       }

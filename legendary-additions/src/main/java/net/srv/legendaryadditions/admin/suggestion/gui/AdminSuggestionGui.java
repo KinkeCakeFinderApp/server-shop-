@@ -48,7 +48,6 @@ public final class AdminSuggestionGui {
       this.format = format;
       this.guard = guard;
       this.publicGui = publicGui;
-      publicGui.setAdminGui(this);
    }
 
    private boolean requireAdmin(Player player) {
@@ -112,8 +111,7 @@ public final class AdminSuggestionGui {
       }
       menu.set(51, Items.icon(Material.HOPPER, "Order: " + sort.label(), NamedTextColor.AQUA,
             status == SuggestionStatus.PENDING ? "Pending is always oldest first." : "Uses your public sort order."));
-      menu.set(52, Items.icon(Material.OAK_DOOR, "Back", NamedTextColor.WHITE, "Back to the public suggestions."),
-            (p, c) -> this.publicGui.openList(p, SuggestionCategory.LEGENDARY, 0));
+      menu.set(52, Items.icon(Material.BARRIER, "Close", NamedTextColor.RED), (p, c) -> p.closeInventory());
       menu.set(53, Items.icon(Material.BARRIER, "Close", NamedTextColor.RED), (p, c) -> p.closeInventory());
       player.openInventory(menu.getInventory());
    }

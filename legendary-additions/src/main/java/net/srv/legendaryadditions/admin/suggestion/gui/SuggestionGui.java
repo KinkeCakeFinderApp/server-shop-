@@ -44,7 +44,6 @@ public final class SuggestionGui {
    private final ClickGuard guard;
    private final ChatInputManager chat;
    private final Map<UUID, SortOrder> sortOrders = new ConcurrentHashMap<>();
-   private AdminSuggestionGui admin;
 
    public SuggestionGui(Plugin plugin, SuggestionService service, SuggestionAccess access, SuggestionFormat format,
                         ClickGuard guard, ChatInputManager chat) {
@@ -54,10 +53,6 @@ public final class SuggestionGui {
       this.format = format;
       this.guard = guard;
       this.chat = chat;
-   }
-
-   void setAdminGui(AdminSuggestionGui admin) {
-      this.admin = admin;
    }
 
    public SortOrder sort(UUID player) {
@@ -115,11 +110,6 @@ public final class SuggestionGui {
       if (page.hasNext()) {
          menu.set(50, Items.icon(Material.ARROW, "Next Page", NamedTextColor.YELLOW),
                (p, c) -> this.openList(p, category, page.page() + 1));
-      }
-      if (SuggestionAccess.isAdmin(player)) {
-         // Visibility is only convenience - the admin GUI checks the permission itself on open and on every click.
-         menu.set(51, Items.icon(Material.COMMAND_BLOCK, "Admin Panel", NamedTextColor.RED, "Review and manage suggestions."),
-               (p, c) -> this.admin.openList(p, SuggestionStatus.PENDING, 0));
       }
       menu.set(52, Items.icon(Material.OAK_DOOR, "Back", NamedTextColor.WHITE,
             page.page() > 0 ? "Back to the first page." : "Leave the suggestion menu."), (p, c) -> {
@@ -321,7 +311,7 @@ public final class SuggestionGui {
       for (Player online : Bukkit.getOnlinePlayers()) {
          online.getScheduler().run(this.plugin, task -> {
             if (SuggestionAccess.isAdmin(online)) {
-               Messages.info(online, author + " submitted suggestion #" + id + ". Review it in /suggestions admin.");
+               Messages.info(online, author + " submitted suggestion #" + id + ". Review it with /suggestionadmin.");
             }
          }, null);
       }

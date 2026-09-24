@@ -6,6 +6,7 @@ import net.srv.legendaryadditions.admin.AdminSettings;
 import net.srv.legendaryadditions.admin.SelfTest;
 import net.srv.legendaryadditions.admin.command.AdminCommand;
 import net.srv.legendaryadditions.admin.command.CommandRegistrar;
+import net.srv.legendaryadditions.admin.command.SuggestionAdminCommand;
 import net.srv.legendaryadditions.admin.command.SuggestionsCommand;
 import net.srv.legendaryadditions.admin.dimension.AdminDimension;
 import net.srv.legendaryadditions.admin.effect.ExplosionGuard;
@@ -86,7 +87,8 @@ public class LegendaryAdditionsMod extends JavaPlugin {
          var commands = event.registrar();
          commands.register("legendary_additions", "Give legendary items to players.", new LegendaryAdditionsCommand());
          commands.register("admin", "Enter the Admin dimension, or /admin return to go back.", new AdminCommand(dimension));
-         commands.register("suggestions", "Browse, vote on and submit suggestions.", new SuggestionsCommand(suggestionGui, adminGui, access));
+         commands.register("suggestions", "Browse, vote on and submit suggestions.", new SuggestionsCommand(suggestionGui, access));
+         commands.register("suggestionadmin", "Review and manage suggestions (admins only).", new SuggestionAdminCommand(adminGui));
          CommandRegistrar.registerRods(commands, this, registry);
       });
 
