@@ -11,6 +11,7 @@ public record AdminSettings(
       Targeting targeting,
       Strike orbital,
       Strike nuke,
+      NukeRings nukeRings,
       Teleport teleport,
       LawNuke lawNuke,
       WitherNuke witherNuke,
@@ -25,6 +26,14 @@ public record AdminSettings(
 
    public record Strike(double radius, double damage, double knockback, int warningTicks, boolean destroyBlocks,
                         boolean createFire, boolean damageOwner, double craterRadius) {}
+
+   /** style "rings" = Unstable SMP TNT rings; "crater" = the old silent crater strike. */
+   public record NukeRings(boolean rings, List<Double> ringRadii, List<Integer> ringCounts, double spawnHeight,
+                           int fuseTicks, double misalign, boolean centerTnt, float power, boolean destroyBlocks,
+                           boolean damageOwner) {}
+
+   public static final List<Double> DEFAULT_RING_RADII = List.of(6.0, 11.0, 16.0, 21.0, 26.0, 31.0, 36.0, 41.0, 46.0, 51.0);
+   public static final List<Integer> DEFAULT_RING_COUNTS = List.of(15, 27, 38, 49, 62, 73, 83, 95, 107, 119);
 
    public record Teleport(double maxDistance, int safeSearchRadius, boolean allowLava) {}
 
@@ -51,6 +60,8 @@ public record AdminSettings(
             disabled.stream().map(String::toLowerCase).collect(Collectors.toUnmodifiableSet()));
       Strike orbital = strike(config.getConfigurationSection("orbital-strike"), 8.0, 50.0, 2.5, 0, true, false, 4.0);
       Strike nuke = strike(config.getConfigurationSection("nuke"), 20.0, 150.0, 5.0, 0, true, false, 9.0);
+
+      NukeRings nukeRings = nukeRings(config);
 
       Teleport teleport = new Teleport(
             positive(config.getDouble("teleport-rod.max-distance", 100.0), 100.0),
@@ -110,9 +121,31 @@ public record AdminSettings(
             Math.max(0, config.getInt("suggestions.max-pending-per-player", 5)),
             config.getBoolean("suggestions.allow-delete", true),
             config.getString("suggestions.date-format", "yyyy-MM-dd HH:mm"));
-      return new AdminSettings(targeting, orbital, nuke, teleport, lawNuke, witherNuke, wolfRod, arrowRod, worldKey, suggestions,
+      return new AdminSettings(targeting, orbital, nuke, nukeRings, teleport, lawNuke, witherNuke, wolfRod, arrowRod, worldKey, suggestions,
             config.getBoolean("rod-effects.sounds", false),
             config.getBoolean("rod-effects.particles", false));
+   }
+
+   static NukeRings nukeRings(FileConfiguration config) {
+      List<Double> radii = config.getDoubleList("nuke.ring-radii").stream()
+            .filter(r -> r > 0.0 && r <= 200.0).toList();
+      List<Integer> counts = config.getIntegerList("nuke.ring-tnt-counts").stream()
+            .map(c -> clamp(c, 1, 1000)).toList();
+      if (radii.isEmpty() || radii.size() != counts.size()) {
+         radii = DEFAULT_RING_RADII;
+         counts = DEFAULT_RING_COUNTS;
+      }
+      return new NukeRings(
+            !"crater".equalsIgnoreCase(config.getString("nuke.style", "rings")),
+            radii,
+            counts,
+            clamp(config.getDouble("nuke.spawn-height", 72.0), 1.0, 300.0),
+            clamp(config.getInt("nuke.fuse-ticks", 79), 1, 400),
+            clamp(config.getDouble("nuke.misalign", 0.5), 0.0, 10.0),
+            config.getBoolean("nuke.center-tnt", true),
+            (float) clamp(config.getDouble("nuke.tnt-power", 4.0), 0.5, 20.0),
+            config.getBoolean("nuke.destroy-blocks", true),
+            config.getBoolean("nuke.damage-owner", false));
    }
 
    private static Strike strike(ConfigurationSection s, double radius, double damage, double knockback, int warning,

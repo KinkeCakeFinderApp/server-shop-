@@ -15,7 +15,11 @@ public final class RodEffects {
          return true;
       });
       this.effects.put(RodKind.NUKE, (caster, target, s) -> {
-         StrikeEffect.launch(plugin, target.center(), s.nuke(), StrikeEffect.Style.NUKE, caster.getUniqueId());
+         if (s.nukeRings().rings()) {
+            NukeRingsEffect.launch(plugin, target.center(), s.nukeRings(), caster.getUniqueId());
+         } else {
+            StrikeEffect.launch(plugin, target.center(), s.nuke(), StrikeEffect.Style.NUKE, caster.getUniqueId());
+         }
          return true;
       });
       this.effects.put(RodKind.TELEPORT, (caster, target, s) -> TeleportEffect.teleport(plugin, caster, target, s.teleport()));

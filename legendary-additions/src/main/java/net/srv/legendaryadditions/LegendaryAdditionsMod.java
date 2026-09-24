@@ -114,24 +114,37 @@ public class LegendaryAdditionsMod extends JavaPlugin {
    }
 
    /**
-    * Config files written by 3.0.0 made Orbital Strike and Nuke look like duds (no visuals and no
-    * block damage). Version 2 gives them a silent crater and no warning delay.
+    * Brings older config.yml files up to date. Version 2 gave Orbital Strike and Nuke a silent crater
+    * and no warning delay (3.0.0 configs made them look like duds). Version 3 switches the Nuke to
+    * the Unstable SMP TNT rings.
     */
    private void migrateConfig() {
       var config = this.getConfig();
-      if (config.getInt("config-version", 1) >= 2) {
+      int version = config.getInt("config-version", 1);
+      if (version >= 3) {
          return;
       }
-      config.set("orbital-strike.warning-time-ticks", 0);
-      config.set("orbital-strike.destroy-blocks", true);
-      config.set("orbital-strike.crater-radius", 4.0);
-      config.set("orbital-strike.block-damage-power", null);
-      config.set("nuke.warning-time-ticks", 0);
-      config.set("nuke.destroy-blocks", true);
-      config.set("nuke.crater-radius", 9.0);
-      config.set("nuke.block-damage-power", null);
-      config.set("config-version", 2);
+      if (version < 2) {
+         config.set("orbital-strike.warning-time-ticks", 0);
+         config.set("orbital-strike.destroy-blocks", true);
+         config.set("orbital-strike.crater-radius", 4.0);
+         config.set("orbital-strike.block-damage-power", null);
+         config.set("nuke.warning-time-ticks", 0);
+         config.set("nuke.destroy-blocks", true);
+         config.set("nuke.crater-radius", 9.0);
+         config.set("nuke.block-damage-power", null);
+         this.getLogger().info("Updated config.yml: Orbital Strike and Nuke now leave a silent crater and strike instantly.");
+      }
+      config.set("nuke.style", "rings");
+      config.set("nuke.ring-radii", AdminSettings.DEFAULT_RING_RADII);
+      config.set("nuke.ring-tnt-counts", AdminSettings.DEFAULT_RING_COUNTS);
+      config.set("nuke.center-tnt", true);
+      config.set("nuke.spawn-height", 72.0);
+      config.set("nuke.fuse-ticks", 79);
+      config.set("nuke.misalign", 0.5);
+      config.set("nuke.tnt-power", 4.0);
+      config.set("config-version", 3);
       this.saveConfig();
-      this.getLogger().info("Updated config.yml: Orbital Strike and Nuke now leave a silent crater and strike instantly.");
+      this.getLogger().info("Updated config.yml: the Nuke now drops Unstable SMP style TNT rings (nuke.style: rings).");
    }
 }

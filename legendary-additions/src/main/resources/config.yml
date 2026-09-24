@@ -6,7 +6,7 @@
 # "warning-time-ticks" is an optional delay before impact (0 by default).
 
 # Do not edit: used to update older config files automatically.
-config-version: 2
+config-version: 3
 
 # Extra sounds and particles made by the rods (warning beams, markers, charge-up sounds,
 # smoke, impact sounds, teleport sparkles, the break sound of used-up rods...).
@@ -42,16 +42,31 @@ orbital-strike:
   damage-owner: false
 
 nuke:
+  # rings  = the Unstable SMP / Orbital Strike Cannon nuke: 661 TNT spawn high above the target
+  #          and spread into 10 rings as they fall, then all go off together.
+  # crater = the old nuke: instant damage in "radius" and a silent crater.
+  style: rings
+  # Ring settings (style: rings). Each ring radius needs a matching TNT count.
+  ring-radii: [6.0, 11.0, 16.0, 21.0, 26.0, 31.0, 36.0, 41.0, 46.0, 51.0]
+  ring-tnt-counts: [15, 27, 38, 49, 62, 73, 83, 95, 107, 119]
+  center-tnt: true
+  # Blocks above the target where the TNT appears (capped at the world's build limit).
+  spawn-height: 72.0
+  # Ticks until the TNT explodes. The TNT speed is worked out from this so it lands on its ring.
+  fuse-ticks: 79
+  # How far (blocks) each TNT may randomly drift from its exact ring position.
+  misalign: 0.5
+  # Explosion power of each TNT (vanilla TNT is 4).
+  tnt-power: 4.0
+  destroy-blocks: true
+  damage-owner: false
+  # Crater settings (style: crater only).
   radius: 20.0
   damage: 150.0
   knockback: 5.0
-  # Delay before impact (0 = instant, no target warning).
   warning-time-ticks: 0
-  # Silently removes a sphere of blocks at the target (no explosion sound or particles).
-  destroy-blocks: true
   crater-radius: 9.0
   create-fire: false
-  damage-owner: false
 
 # /lawnuke, /lawnukeshot - carpet of TNT-strength blasts over a wide area.
 law-nuke:

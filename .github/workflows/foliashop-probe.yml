@@ -18,9 +18,6 @@ jobs:
           curl -sSfL "$url" -o foliashop.jar
           unzip -l foliashop.jar | grep -v '\.class$'
           mkdir x && cd x && unzip -q ../foliashop.jar
-          for f in plugin.yml paper-plugin.yml config.yml messages.yml lang/en.yml; do [ -f "$f" ] && { echo "===== $f"; cat "$f"; }; done
-          for f in $(find . -name '*.yml' -not -name plugin.yml -not -name paper-plugin.yml -not -name config.yml | head -20); do echo "===== $f (head 120)"; head -120 "$f"; done
-          echo "===== strings mentioning reload/editor/admin/api"
-          find . -name '*.class' | xargs -I{} sh -c 'strings -n 4 "{}" | grep -iE "^(reload|editor|admin|foliashop\.[a-z.]+|/shop.*)$" | sed "s|^|{}: |"' | sort -u | head -150
-          echo "===== class list (non-lib)"
-          find . -name '*.class' | grep -viE 'shaded|libs|kotlin|org/bstats|com/zaxxer' | head -200
+          cat GUIDE.md
+          echo '===== shops.yml keys'
+          grep -nE '^ {8}[a-z-]+:|^ {10}[a-z-]+:' shops.yml | sed 's/^[0-9]*://' | sort | uniq -c
