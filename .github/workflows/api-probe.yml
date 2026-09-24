@@ -1,0 +1,39 @@
+name: API probe (temporary)
+on:
+  push:
+    paths:
+      - '.github/workflows/api-probe.yml'
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Metadata
+        run: |
+          R=https://repo.papermc.io/repository/maven-public
+          for a in dev/folia/folia-api io/papermc/paper/paper-api; do
+            echo "=== $a"; curl -s $R/$a/maven-metadata.xml | grep -oE '<version>[^<]*</version>' | tail -25
+          done
+      - name: Inspect API jar
+        run: |
+          R=https://repo.papermc.io/repository/maven-public
+          for a in dev/folia/folia-api io/papermc/paper/paper-api; do
+            V=$(curl -s $R/$a/maven-metadata.xml | grep -oE '<version>26\.1\.2[^<]*</version>' | sed -E 's/<\/?version>//g' | tail -1)
+            echo "=== $a latest 26.1.2: $V"
+            [ -z "$V" ] && continue
+            N=$(basename $a)
+            M=$(curl -s $R/$a/$V/maven-metadata.xml)
+            echo "$M" | head -40
+            TS=$(echo "$M" | grep -oE '<value>[^<]*</value>' | head -1 | sed -E 's/<\/?value>//g')
+            [ -z "$TS" ] && TS=$V
+            curl -s -o api.jar $R/$a/$V/$N-$TS.jar; ls -la api.jar
+            curl -s $R/$a/$V/$N-$TS.pom | grep -A3 '<dependency>' | grep -E 'artifactId|version' | head -60
+            unzip -l api.jar | grep -E 'lifecycle/event/types|datapack|DatapackRegistrar|brigadier/Commands|RegionScheduler' | head -40
+            for c in io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents io.papermc.paper.datapack.DatapackRegistrar io.papermc.paper.datapack.DiscoveredDatapack org.bukkit.entity.Fireball org.bukkit.entity.WitherSkull org.bukkit.damage.DamageSource org.bukkit.damage.DamageSource\$Builder io.papermc.paper.command.brigadier.Commands io.papermc.paper.command.brigadier.BasicCommand io.papermc.paper.threadedregions.scheduler.RegionScheduler org.bukkit.World org.bukkit.inventory.meta.BlockStateMeta org.bukkit.event.player.PlayerFishEvent org.bukkit.Registry org.bukkit.enchantments.Enchantment org.bukkit.entity.AbstractArrow org.bukkit.entity.Wolf org.bukkit.attribute.Attribute io.papermc.paper.plugin.bootstrap.PluginBootstrap org.bukkit.Particle org.bukkit.Sound; do
+              echo "--- $c"; javap -cp api.jar "$c" 2>&1 | grep -vE '^Compiled' | head -150
+            done
+            break
+          done
