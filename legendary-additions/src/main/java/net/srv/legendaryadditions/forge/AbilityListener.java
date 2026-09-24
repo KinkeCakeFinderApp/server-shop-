@@ -463,7 +463,8 @@ public final class AbilityListener implements Listener {
    /** Highest level of every ability on items in either hand or in an armour slot. */
    private static Map<Ability, Integer> equippedLevels(Player player) {
       Map<Ability, Integer> levels = new EnumMap<>(Ability.class);
-      List<ItemStack> items = new ArrayList<>(List.of(player.getInventory().getArmorContents()));
+      // Empty armour slots are null, so no List.of here.
+      List<ItemStack> items = new ArrayList<>(java.util.Arrays.asList(player.getInventory().getArmorContents()));
       items.add(player.getInventory().getItemInMainHand());
       items.add(player.getInventory().getItemInOffHand());
       for (ItemStack item : items) {
