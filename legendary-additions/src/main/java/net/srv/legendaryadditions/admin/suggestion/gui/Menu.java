@@ -3,6 +3,8 @@ package net.srv.legendaryadditions.admin.suggestion.gui;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Predicate;
+import net.srv.legendaryadditions.admin.suggestion.SuggestionAccess;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -23,13 +25,18 @@ public final class Menu implements InventoryHolder {
    }
 
    private final UUID viewer;
-   private final boolean adminOnly;
+   private final Predicate<Player> access;
    private final Inventory inventory;
    private final Map<Integer, Action> actions = new HashMap<>();
 
    public Menu(UUID viewer, int rows, Component title, boolean adminOnly) {
+      this(viewer, rows, title, adminOnly ? SuggestionAccess::isAdmin : null);
+   }
+
+   /** {@code access}: re-checked before every click; null means anyone may click. */
+   public Menu(UUID viewer, int rows, Component title, Predicate<Player> access) {
       this.viewer = viewer;
-      this.adminOnly = adminOnly;
+      this.access = access;
       this.inventory = Bukkit.createInventory(this, rows * 9, title);
    }
 
@@ -50,9 +57,9 @@ public final class Menu implements InventoryHolder {
       return this.viewer;
    }
 
-   /** Admin screens: every click re-checks the admin permission before anything runs. */
-   public boolean adminOnly() {
-      return this.adminOnly;
+   /** Admin screens: every click re-checks the permission before anything runs. */
+   public boolean allowed(Player player) {
+      return this.access == null || (player.isOnline() && this.access.test(player));
    }
 
    @Override

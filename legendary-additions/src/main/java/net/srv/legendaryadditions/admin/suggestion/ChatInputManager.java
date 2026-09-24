@@ -30,6 +30,25 @@ public final class ChatInputManager implements Listener {
 
    /** Must be called on the player's thread. {@code handler} runs on the player's thread with the raw text. */
    public void begin(Player player, int timeoutSeconds, BiConsumer<Player, String> handler) {
+      this.begin(player, timeoutSeconds, "Suggestion input timed out. Open /suggestions to try again.", handler);
+   }
+
+   /**
+    * One-shot question: the next chat line ends the session and goes to {@code handler}, except
+    * "cancel", which just ends it. Must be called on the player's thread.
+    */
+   public void ask(Player player, int timeoutSeconds, String timeoutMessage, BiConsumer<Player, String> handler) {
+      this.begin(player, timeoutSeconds, timeoutMessage, (p, raw) -> {
+         this.end(p.getUniqueId());
+         if (raw.trim().equalsIgnoreCase("cancel")) {
+            Messages.info(p, "Cancelled.");
+            return;
+         }
+         handler.accept(p, raw.trim());
+      });
+   }
+
+   public void begin(Player player, int timeoutSeconds, String timeoutMessage, BiConsumer<Player, String> handler) {
       UUID id = player.getUniqueId();
       Object token = new Object();
       this.sessions.put(id, token);
@@ -37,7 +56,7 @@ public final class ChatInputManager implements Listener {
       player.getScheduler().runDelayed(this.plugin, task -> {
          if (this.sessions.remove(id, token)) {
             this.handlers.remove(id);
-            Messages.info(player, "Suggestion input timed out. Open /suggestions to try again.");
+            Messages.info(player, timeoutMessage);
          }
       }, null, timeoutSeconds * 20L);
    }

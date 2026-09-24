@@ -4,7 +4,7 @@ main: net.srv.legendaryadditions.LegendaryAdditionsMod
 bootstrapper: net.srv.legendaryadditions.LegendaryAdditionsBootstrap
 api-version: '26.1'
 folia-supported: true
-description: Legendary items, authenticated admin rods, a persistent Admin dimension and a suggestion GUI.
+description: Legendary items, a Legendary Creator, /shop admin, authenticated admin rods, a persistent Admin dimension and a suggestion GUI.
 authors: [MCreator, srv]
 
 permissions:
@@ -40,6 +40,9 @@ permissions:
     default: true
   admindimension.suggestions.admin:
     description: Opens the admin suggestion backend and performs every admin action.
+    default: op
+  legendaryadditions.shopadmin:
+    description: Opens /shop admin (/shopadmin) to add items and legendaries to FoliaShop and change prices.
     default: op
   admindimension.admin:
     description: Every admin rod, dimension and suggestion-admin permission.

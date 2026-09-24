@@ -8,6 +8,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import net.srv.legendaryadditions.LegendaryAdditionsMod;
+import net.srv.legendaryadditions.forge.LegendaryItems;
+import net.srv.legendaryadditions.forge.LegendaryService;
+import net.srv.legendaryadditions.forge.data.LegendaryDef;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -30,8 +33,14 @@ public class LegendaryAdditionsCommand implements BasicCommand {
             return;
          }
          // Folia: the target's inventory may only be touched on the target's own thread.
-         target.getScheduler().run(LegendaryAdditionsMod.plugin,
-               task -> target.getInventory().addItem(this.resolveItem(itemName)), null);
+         target.getScheduler().run(LegendaryAdditionsMod.plugin, task -> {
+            ItemStack item = this.resolveItem(itemName);
+            if (item != null) {
+               target.getInventory().addItem(item).values()
+                     .forEach(left -> target.getWorld().dropItem(target.getLocation(), left));
+            }
+         }, null);
+         sender.sendMessage(ChatColor.GREEN + "Gave " + itemName.toLowerCase() + " to " + target.getName() + ".");
       } else {
          sender.sendMessage(ChatColor.RED + "Usage: /legendary_additions give <player> <item>");
       }
@@ -46,9 +55,13 @@ public class LegendaryAdditionsCommand implements BasicCommand {
          return Embershade.create();
       } else if (itemName.equalsIgnoreCase("drill")) {
          return Drill.create();
-      } else {
-         return itemName.equalsIgnoreCase("paxel") ? Paxel.create() : null;
+      } else if (itemName.equalsIgnoreCase("paxel")) {
+         return Paxel.create();
       }
+      // Admin-made legendaries from the Legendary Creator (legendaries.db).
+      LegendaryService service = LegendaryItems.service();
+      LegendaryDef def = service == null ? null : service.get(itemName.toLowerCase());
+      return def == null ? null : LegendaryItems.build(def);
    }
 
    @Override
@@ -63,6 +76,9 @@ public class LegendaryAdditionsCommand implements BasicCommand {
          }
       } else if (index == 2) {
          completions.addAll(Arrays.asList("riftcaster", "tidefire_crossbow", "embershade", "drill", "paxel"));
+         if (LegendaryItems.service() != null) {
+            LegendaryItems.service().all().forEach(def -> completions.add(def.id()));
+         }
       }
 
       String current = args.length == 0 ? "" : args[args.length - 1].toLowerCase();

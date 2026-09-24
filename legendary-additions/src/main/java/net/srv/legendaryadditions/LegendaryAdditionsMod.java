@@ -27,6 +27,13 @@ import net.srv.legendaryadditions.custom.DrillListener;
 import net.srv.legendaryadditions.custom.LegendaryAdditionsCommand;
 import net.srv.legendaryadditions.custom.PaxelListener;
 import net.srv.legendaryadditions.custom.RiftcasterListener;
+import net.srv.legendaryadditions.forge.AbilityListener;
+import net.srv.legendaryadditions.forge.LegendaryItems;
+import net.srv.legendaryadditions.forge.LegendaryService;
+import net.srv.legendaryadditions.forge.gui.LegendaryCreatorGui;
+import net.srv.legendaryadditions.shopadmin.FoliaShopStore;
+import net.srv.legendaryadditions.shopadmin.ShopAdminCommand;
+import net.srv.legendaryadditions.shopadmin.ShopAdminGui;
 import org.bukkit.Server;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -37,6 +44,8 @@ public class LegendaryAdditionsMod extends JavaPlugin {
 
    private volatile AdminSettings settings;
    private SuggestionService suggestions;
+   private LegendaryService legendaries;
+   private FoliaShopStore shopStore;
 
    @Override
    public void onEnable() {
@@ -64,6 +73,24 @@ public class LegendaryAdditionsMod extends JavaPlugin {
          return;
       }
 
+      try {
+         this.legendaries = LegendaryService.open(this.getDataPath().resolve("legendaries.db"), this.getLogger());
+      } catch (Exception ex) {
+         this.getLogger().log(Level.SEVERE, "Could not open legendaries.db - disabling plugin", ex);
+         this.getServer().getPluginManager().disablePlugin(this);
+         return;
+      }
+      LegendaryItems.init(this, this.legendaries);
+      this.shopStore = new FoliaShopStore(this);
+      FoliaShopStore store = this.shopStore;
+      this.legendaries.onSaved(def -> store.syncLegendary(def).whenComplete((n, error) -> {
+         if (error != null) {
+            this.getLogger().log(Level.WARNING, "Could not update /shop entries for legendary " + def.id(), error);
+         } else if (n > 0) {
+            this.getLogger().info("Updated " + n + " /shop entr" + (n == 1 ? "y" : "ies") + " for legendary '" + def.id() + "'.");
+         }
+      }));
+
       RodRegistry registry = new RodRegistry(authenticator);
       RodEffects effects = new RodEffects(this);
       AdminDimension dimension = new AdminDimension(this, () -> this.settings);
@@ -74,6 +101,9 @@ public class LegendaryAdditionsMod extends JavaPlugin {
       ChatInputManager chat = new ChatInputManager(this);
       SuggestionGui suggestionGui = new SuggestionGui(this, this.suggestions, access, format, guard, chat);
       AdminSuggestionGui adminGui = new AdminSuggestionGui(this, this.suggestions, access, format, guard, suggestionGui);
+      LegendaryCreatorGui creatorGui = new LegendaryCreatorGui(this, this.legendaries, chat);
+      adminGui.setCreator(creatorGui);
+      ShopAdminCommand shopAdmin = new ShopAdminCommand(new ShopAdminGui(this, this.shopStore, this.legendaries, chat));
 
       PluginManager pm = this.getServer().getPluginManager();
       pm.registerEvents(new RiftcasterListener(), this);
@@ -83,6 +113,8 @@ public class LegendaryAdditionsMod extends JavaPlugin {
       pm.registerEvents(new ExplosionGuard(), this);
       pm.registerEvents(new MenuListener(this, guard), this);
       pm.registerEvents(chat, this);
+      pm.registerEvents(new AbilityListener(this), this);
+      pm.registerEvents(shopAdmin, this);
 
       this.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
          var commands = event.registrar();
@@ -90,6 +122,7 @@ public class LegendaryAdditionsMod extends JavaPlugin {
          commands.register("admin", "Enter the Admin dimension, or /admin return to go back.", new AdminCommand(dimension));
          commands.register("suggestions", "Browse, vote on and submit suggestions.", new SuggestionsCommand(suggestionGui, access));
          commands.register("suggestionadmin", "Review and manage suggestions (admins only).", new SuggestionAdminCommand(adminGui));
+         commands.register("shopadmin", "Edit /shop: add legendaries and items, change prices (same as /shop admin).", shopAdmin);
          CommandRegistrar.registerRods(commands, this, registry);
       });
 
@@ -110,6 +143,12 @@ public class LegendaryAdditionsMod extends JavaPlugin {
       // Folia/Paper cancel this plugin's scheduled tasks automatically; rod effects are temporary by design.
       if (this.suggestions != null) {
          this.suggestions.close();
+      }
+      if (this.legendaries != null) {
+         this.legendaries.close();
+      }
+      if (this.shopStore != null) {
+         this.shopStore.close();
       }
    }
 

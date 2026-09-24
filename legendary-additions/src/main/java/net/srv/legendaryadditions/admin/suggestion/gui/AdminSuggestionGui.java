@@ -39,6 +39,7 @@ public final class AdminSuggestionGui {
    private final SuggestionFormat format;
    private final ClickGuard guard;
    private final SuggestionGui publicGui;
+   private net.srv.legendaryadditions.forge.gui.LegendaryCreatorGui creator;
 
    public AdminSuggestionGui(Plugin plugin, SuggestionService service, SuggestionAccess access, SuggestionFormat format,
                              ClickGuard guard, SuggestionGui publicGui) {
@@ -48,6 +49,12 @@ public final class AdminSuggestionGui {
       this.format = format;
       this.guard = guard;
       this.publicGui = publicGui;
+   }
+
+   /** Adds the Legendary Creator button (slot 52) to the suggestion list screens. */
+   public void setCreator(net.srv.legendaryadditions.forge.gui.LegendaryCreatorGui creator) {
+      this.creator = creator;
+      creator.setBack(p -> this.openList(p, SuggestionStatus.PENDING, 0));
    }
 
    private boolean requireAdmin(Player player) {
@@ -111,7 +118,10 @@ public final class AdminSuggestionGui {
       }
       menu.set(51, Items.icon(Material.HOPPER, "Order: " + sort.label(), NamedTextColor.AQUA,
             status == SuggestionStatus.PENDING ? "Pending is always oldest first." : "Uses your public sort order."));
-      menu.set(52, Items.icon(Material.BARRIER, "Close", NamedTextColor.RED), (p, c) -> p.closeInventory());
+      if (this.creator != null) {
+         menu.set(52, Items.icon(Material.NETHER_STAR, "Legendary Creator", NamedTextColor.LIGHT_PURPLE,
+               "Make new legendary items with", "abilities and enchantments."), (p, c) -> this.creator.openList(p, 0));
+      }
       menu.set(53, Items.icon(Material.BARRIER, "Close", NamedTextColor.RED), (p, c) -> p.closeInventory());
       player.openInventory(menu.getInventory());
    }

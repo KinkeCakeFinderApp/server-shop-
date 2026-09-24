@@ -1,7 +1,6 @@
 package net.srv.legendaryadditions.admin.suggestion.gui;
 
 import java.util.logging.Level;
-import net.srv.legendaryadditions.admin.suggestion.SuggestionAccess;
 import net.srv.legendaryadditions.admin.util.Messages;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -53,7 +52,7 @@ public final class MenuListener implements Listener {
       if (click != ClickType.LEFT && click != ClickType.RIGHT && click != ClickType.SHIFT_LEFT && click != ClickType.SHIFT_RIGHT) {
          return;
       }
-      if (menu.adminOnly() && !SuggestionAccess.isAdmin(player)) {
+      if (!menu.allowed(player)) {
          player.closeInventory();
          Messages.error(player, Messages.NO_PERMISSION);
          return;
@@ -65,7 +64,7 @@ public final class MenuListener implements Listener {
       try {
          action.run(player, click);
       } catch (RuntimeException ex) {
-         this.plugin.getLogger().log(Level.SEVERE, "Suggestion GUI action failed for " + player.getName(), ex);
+         this.plugin.getLogger().log(Level.SEVERE, "GUI action failed for " + player.getName(), ex);
          Messages.error(player, Messages.ACTION_FAILED);
       }
    }
