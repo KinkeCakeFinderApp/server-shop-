@@ -5,10 +5,12 @@ on:
     paths:
       - 'legendary-additions/**'
       - '.github/workflows/legendary-additions.yml'
+      - '.github/scripts/**'
   pull_request:
     paths:
       - 'legendary-additions/**'
       - '.github/workflows/legendary-additions.yml'
+      - '.github/scripts/**'
   workflow_dispatch:
 
 jobs:
