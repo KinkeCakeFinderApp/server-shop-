@@ -11533,29 +11533,6 @@ shops:
           name: false
           lore: false
           nbt: true
-      riftcaster:
-        enabled: true
-        material: minecraft:fishing_rod
-        name: "&d&lRiftcaster"
-        lore:
-          - "&7Each cast tears the world apart, stitching"
-          - "&7your path where none existed."
-        glow: true
-        unbreakable: true
-        amount: 1
-        slot: 22
-        buy-price:
-          provider: vault
-          amount: 40000.0
-        sell-price:
-          provider: vault
-          amount: 16000.0
-        tags:
-          legendaryadditions:item_id: riftcaster
-        match:
-          name: false
-          lore: false
-          nbt: true
       embershade:
         enabled: true
         material: minecraft:bow

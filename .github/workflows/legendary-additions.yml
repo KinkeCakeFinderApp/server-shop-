@@ -1,0 +1,36 @@
+name: Build LegendaryAdditions
+
+on:
+  push:
+    paths:
+      - 'legendary-additions/**'
+      - '.github/workflows/legendary-additions.yml'
+  pull_request:
+    paths:
+      - 'legendary-additions/**'
+      - '.github/workflows/legendary-additions.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: legendary-additions
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: legendary-additions/pom.xml
+
+      - name: Build plugin
+        run: mvn -B package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: legendary_additions
+          path: legendary-additions/target/legendary_additions-*.jar

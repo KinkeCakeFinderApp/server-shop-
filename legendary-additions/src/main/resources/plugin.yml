@@ -1,0 +1,23 @@
+main: net.srv.legendaryadditions.LegendaryAdditionsMod
+
+name: LegendaryAdditions
+
+version: ${project.version}
+
+authors: [MCreator]
+
+website: https://mcreator.net
+
+api-version: 1.21
+
+commands:
+  legendary_additions:
+    description: Give legendary items to players.
+    usage: /legendary_additions give <player> <item>
+    permission: legendaryadditions.give
+    permission-message: You do not have permission to use this command.
+
+permissions:
+  legendaryadditions.give:
+    description: Allows giving legendary items to players.
+    default: op
