@@ -1,0 +1,78 @@
+name: Build EloRanks
+
+on:
+  push:
+    paths:
+      - 'elo-ranks/**'
+      - '.github/workflows/elo-ranks.yml'
+      - '.github/scripts/elo-bot/**'
+      - '.github/scripts/elo-ingame-test.sh'
+  pull_request:
+    paths:
+      - 'elo-ranks/**'
+      - '.github/workflows/elo-ranks.yml'
+      - '.github/scripts/elo-bot/**'
+      - '.github/scripts/elo-ingame-test.sh'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: elo-ranks
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build and run unit tests
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EloRanks
+          path: elo-ranks/build/libs/EloRanks-*.jar
+
+  ingame-test:
+    # Two mineflayer bots fight, claim kits and use the GUIs on a real Folia 26.1.2 server with LuckPerms.
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install bots
+        working-directory: .github/scripts/elo-bot
+        run: npm install --no-audit --no-fund
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: EloRanks
+          path: jar
+
+      - name: Bots test EloRanks in game
+        run: bash .github/scripts/elo-ingame-test.sh
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: elo-ingame-logs
+          path: |
+            eloserver/boot*.log
+            eloserver/bot*.log
+            eloserver/plugins/EloRanks/config.yml

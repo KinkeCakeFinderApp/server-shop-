@@ -1,0 +1,522 @@
+# EloRanks - PvP ELO ranking, Tier 6 -> Tier 1, claimable rank kits and a leaderboard.
+#
+# Colours: use & codes (&a, &l, ...) or hex colours as &#RRGGBB.
+# Durations: 30s, 10m, 48h, 2d, 1d12h ... (a plain number means seconds).
+# Materials, potion types, sounds and particles use Minecraft ids (ender_pearl, strong_swiftness, ...).
+# After editing, run /elo reload.
+config-version: 1
+
+# ----------------------------------------------------------------------------------------------
+# ELO
+# ----------------------------------------------------------------------------------------------
+elo:
+  # ELO a player has the first time they join.
+  starting-elo: 0
+  # Lowest ELO a player can drop to. ELO never goes below 0, whatever this says.
+  minimum-elo: 0
+  # Highest ELO a player can reach. 0 = no maximum.
+  maximum-elo: 0
+  # false = losing ELO can never take a player below starting-elo.
+  allow-below-starting-elo: true
+  # Standard ELO: gain = k-factor * (1 - expected win chance of the killer).
+  # Two equal players: gain = k-factor / 2.
+  k-factor: 32
+  # ELO the loser loses, as a multiple of what the winner gains (1.0 = zero-sum).
+  loss-multiplier: 1.0
+  # Every counted kill gives at least this much and at most this much ELO (max 0 = no cap).
+  minimum-gain: 1
+  maximum-gain: 0
+
+# ----------------------------------------------------------------------------------------------
+# Which deaths change ELO
+# ----------------------------------------------------------------------------------------------
+pvp:
+  # Worlds where kills count. Empty = every world.
+  worlds: []
+  # A player who dies without a direct killer (fall, lava, void, fire...) within this long after
+  # being hit by another player counts as killed by that player. 0s = only direct kills count.
+  credit-last-attacker: 15s
+  # A player who disconnects within this long after being hit by another player counts as killed
+  # by that player (combat logging). 0s = disconnects never change ELO.
+  combat-log: 15s
+
+# ----------------------------------------------------------------------------------------------
+# Anti ELO farming. A kill that breaks a rule changes nobody's ELO and is not rewarded.
+# Suicides and deaths with no player killer never change ELO.
+# ----------------------------------------------------------------------------------------------
+anti-farming:
+  # Minimum time between two counted kills of the same player by the same killer. 0s = off.
+  same-victim-cooldown: 10m
+  # At most this many counted kills of the same player within same-victim-window. 0 = off.
+  same-victim-limit: 3
+  same-victim-window: 24h
+  # A player can gain at most this much ELO within gain-limit-window. 0 = off.
+  gain-limit: 400
+  gain-limit-window: 24h
+  # Kills between two players connected from the same IP address never count (alt accounts).
+  block-same-ip: true
+
+# ----------------------------------------------------------------------------------------------
+# Rewards
+# ----------------------------------------------------------------------------------------------
+# How long a player waits between two claims of the same tier's reward. Every tier has its own
+# cooldown, per player.
+claim-cooldown: 48h
+
+# What happens when the reward does not fit in the player's inventory:
+#   refuse  - nothing is claimed, the player is told to make space (default)
+#   pending - the claim goes through and the reward waits in "Pending deliveries" in /kits
+#   drop    - what does not fit is dropped at the player's feet
+full-inventory: refuse
+
+# ----------------------------------------------------------------------------------------------
+# Tiers. Tier 6 is the first unlock, Tier 1 the last. The tier is always worked out from ELO:
+# the highest tier whose elo requirement the player has reached. Below the lowest tier the
+# player is "unranked".
+#
+# A reward stays claimable (every claim-cooldown) once its tier was reached, even if the
+# player's ELO drops again, until an admin runs /elo resetprogress.
+# ----------------------------------------------------------------------------------------------
+tiers:
+  tier-6:
+    number: 6
+    name: "Tier 6"
+    color: "&7"
+    elo: 100
+    reward: potions
+    # Slot in the /kits GUI.
+    slot: 10
+  tier-5:
+    number: 5
+    name: "Tier 5"
+    color: "&a"
+    elo: 280
+    reward: pearls
+    slot: 11
+  tier-4:
+    number: 4
+    name: "Tier 4"
+    color: "&b"
+    elo: 460
+    reward: breeze_rods
+    slot: 12
+  tier-3:
+    number: 3
+    name: "Tier 3"
+    color: "&d"
+    elo: 640
+    reward: golden_carrots
+    slot: 14
+  tier-2:
+    number: 2
+    name: "Tier 2"
+    color: "&e"
+    elo: 820
+    reward: golden_apples
+    slot: 15
+  tier-1:
+    number: 1
+    name: "Tier 1"
+    color: "&6"
+    elo: 1000
+    reward: tnt_minecarts
+    slot: 16
+
+# Shown instead of a tier below the lowest tier's elo.
+unranked:
+  name: "Unranked"
+  color: "&8"
+
+# Which tier is shown next to the name, in the GUI and on the leaderboard:
+#   current - the tier the player's ELO is in right now (default)
+#   highest - the highest tier the player has ever reached
+displayed-tier: current
+
+# ----------------------------------------------------------------------------------------------
+# Reward contents.
+#   container: barrel - the items are packed into barrels (27 slots each; more barrels are made
+#              when the items need more than 27 slots). Shulker boxes are never used.
+#   container: none   - the items go straight into the inventory.
+#   items: every entry is one kind of item; amount is the total count, split into full stacks.
+#     material:       minecraft item id
+#     amount:         total number of items
+#     name / lore:    optional custom name and lore
+#     Potions (material potion, splash_potion or lingering_potion):
+#       potion-type:  a vanilla potion, e.g. strong_swiftness (Speed II, 1:30),
+#                     strong_strength (Strength II, 1:30), long_swiftness, fire_resistance ...
+#       effects:      optional extra effects: - {type: speed, level: 2, duration: 3m}
+#       color:        optional potion colour as #RRGGBB
+# ----------------------------------------------------------------------------------------------
+rewards:
+  potions:
+    name: "&dCombat Potions"
+    icon: potion
+    description:
+      - "&71 barrel of combat potions:"
+      - "&7 14x Speed II, 13x Strength II"
+    container: barrel
+    container-name: "&dPotion Barrel"
+    items:
+      - material: potion
+        potion-type: strong_swiftness
+        amount: 14
+      - material: potion
+        potion-type: strong_strength
+        amount: 13
+  pearls:
+    name: "&aEnder Pearls"
+    icon: ender_pearl
+    description:
+      - "&71 full barrel of Ender Pearls"
+      - "&7 (432 pearls)"
+    container: barrel
+    container-name: "&aEnder Pearl Barrel"
+    items:
+      - material: ender_pearl
+        amount: 432
+  breeze_rods:
+    name: "&bBreeze Rods"
+    icon: breeze_rod
+    description:
+      - "&73 stacks of Breeze Rods"
+    container: none
+    items:
+      - material: breeze_rod
+        amount: 192
+  golden_carrots:
+    name: "&6Golden Carrots"
+    icon: golden_carrot
+    description:
+      - "&71 stack of Golden Carrots"
+    container: none
+    items:
+      - material: golden_carrot
+        amount: 64
+  golden_apples:
+    name: "&eGolden Apples"
+    icon: golden_apple
+    description:
+      - "&72 stacks of Golden Apples"
+    container: none
+    items:
+      - material: golden_apple
+        amount: 128
+  tnt_minecarts:
+    name: "&cTNT Minecarts"
+    icon: tnt_minecart
+    description:
+      - "&71 full barrel of TNT Minecarts"
+      - "&7 (27 TNT minecarts)"
+    container: barrel
+    container-name: "&cTNT Minecart Barrel"
+    items:
+      - material: tnt_minecart
+        amount: 27
+
+# ----------------------------------------------------------------------------------------------
+# Rank display through LuckPerms (LuckPerms API, never console commands).
+#   mode: prefix - the plugin gives the player one LuckPerms prefix for their tier. It only ever
+#                  touches the prefix it added itself (it remembers it in the meta key
+#                  "eloranks-prefix") and never other prefixes, groups or permissions.
+#         group  - the plugin keeps the player in the LuckPerms group of their tier and only
+#                  ever adds/removes the groups listed under groups:. The groups must exist.
+#         none   - no LuckPerms changes.
+# The tier number is also stored in the meta key "eloranks-tier", and the prefix text in
+# "eloranks-prefix", so chat/tab plugins can show them (%luckperms_meta_eloranks-prefix%).
+# LuckPerms shows the prefix with the highest priority; raise priority if another prefix hides it.
+# ----------------------------------------------------------------------------------------------
+luckperms:
+  mode: prefix
+  priority: 150
+  prefixes:
+    unranked: ""
+    tier-6: "&7[T6] "
+    tier-5: "&a[T5] "
+    tier-4: "&b[T4] "
+    tier-3: "&d[T3] "
+    tier-2: "&e[T2] "
+    tier-1: "&6[T1] "
+  groups:
+    unranked: ""
+    tier-6: "elo-tier-6"
+    tier-5: "elo-tier-5"
+    tier-4: "elo-tier-4"
+    tier-3: "elo-tier-3"
+    tier-2: "elo-tier-2"
+    tier-1: "elo-tier-1"
+
+# ----------------------------------------------------------------------------------------------
+# Rank up (reaching a higher tier than before). Every part can be turned off on its own.
+# ----------------------------------------------------------------------------------------------
+rank-up:
+  message:
+    enabled: true
+    text:
+      - "&6&lRANK UP! &7You reached {tier_color}{tier_name}&7."
+      - "&7New reward unlocked: {reward_name}&7. Claim it in &e/kits&7."
+  broadcast:
+    enabled: false
+    text: "&6{player} &7reached {tier_color}{tier_name}&7!"
+  title:
+    enabled: true
+    title: "{tier_color}&l{tier_name}"
+    subtitle: "&7Reward unlocked: {reward_name}"
+    fade-in: 10
+    stay: 60
+    fade-out: 20
+  sound:
+    enabled: true
+    sound: minecraft:ui.toast.challenge_complete
+    volume: 1.0
+    pitch: 1.0
+  particles:
+    enabled: true
+    particle: totem_of_undying
+    count: 60
+    spread: 0.6
+    speed: 0.4
+
+# ----------------------------------------------------------------------------------------------
+# Leaderboard
+# ----------------------------------------------------------------------------------------------
+leaderboard:
+  # How often the cached leaderboard is rebuilt from the database.
+  refresh-interval: 60s
+  # Players shown at most (all pages together).
+  max-entries: 450
+
+# ----------------------------------------------------------------------------------------------
+# GUIs. Slots count from 0 (top left). Every GUI is read-only: items can never be taken out.
+# Placeholders: {player} {elo} {tier_name} {tier_color} {next_tier_name} {next_tier_color}
+#   {next_tier_elo} {elo_needed} {progress_bar} {progress_percent} {rewards_available}
+#   Kits: {reward_name} {required_elo} {last_claim} {remaining} {next_claim}
+#   Leaderboard: {position} {page} {pages}
+# ----------------------------------------------------------------------------------------------
+gui:
+  date-format: "yyyy-MM-dd HH:mm"
+  # Time zone for dates, e.g. Europe/London. Empty = the server's time zone.
+  time-zone: ""
+  filler:
+    enabled: true
+    material: gray_stained_glass_pane
+  progress-bar:
+    length: 20
+    filled: "&a|"
+    empty: "&8|"
+  main:
+    title: "&8Ranked PvP"
+    rows: 3
+    profile:
+      slot: 13
+      material: player_head
+      name: "&e&l{player}"
+      lore:
+        - "&7Your rank: {tier_color}{tier_name}"
+        - "&7Your ELO: &f{elo}"
+        - ""
+        - "&7Next unlock: {next_tier_color}{next_tier_name} &7- &f{next_tier_elo} ELO"
+        - "&7ELO needed: &f{elo_needed}"
+        - "{progress_bar} &f{progress_percent}%"
+        - ""
+        - "&7Rewards ready to claim: &a{rewards_available}"
+      # Lines used instead of the next-unlock lines above once the player is Tier 1.
+      max-tier-lore:
+        - "&7Your rank: {tier_color}{tier_name}"
+        - "&7Your ELO: &f{elo}"
+        - ""
+        - "&6&lMAX TIER"
+        - ""
+        - "&7Rewards ready to claim: &a{rewards_available}"
+    kits:
+      slot: 11
+      material: chest
+      name: "&6&l🎁 RANK KITS"
+      lore:
+        - "&7Claim the rewards of every tier"
+        - "&7you have reached."
+        - ""
+        - "&7Ready to claim: &a{rewards_available}"
+        - "&eClick to open"
+    leaderboard:
+      slot: 15
+      material: gold_ingot
+      name: "&e&l🏆 LEADERBOARD"
+      lore:
+        - "&7The players with the most ELO."
+        - ""
+        - "&eClick to open"
+    close:
+      slot: 22
+      material: barrier
+      name: "&cClose"
+      lore: []
+  kits:
+    title: "&8Rank Kits"
+    rows: 3
+    back:
+      slot: 22
+      material: arrow
+      name: "&7Back"
+      lore: []
+    pending:
+      slot: 26
+      material: ender_chest
+      name: "&d&lPending deliveries &7({count})"
+      lore:
+        - "&7Rewards you claimed that are"
+        - "&7waiting for inventory space."
+        - ""
+        - "&eClick to receive them"
+    states:
+      locked:
+        material: gray_dye
+        glow: false
+        name: "&c&lLOCKED &8- {tier_color}{tier_name}"
+        lore:
+          - "&7Reward: {reward_name}"
+          - "{reward_description}"
+          - ""
+          - "&7Required ELO: &f{required_elo}"
+          - "&7Your ELO: &f{elo}"
+          - "&7ELO still needed: &c{elo_needed}"
+      available:
+        # Empty material = the reward's icon.
+        material: ""
+        glow: true
+        name: "&a&lAVAILABLE &8- {tier_color}{tier_name}"
+        lore:
+          - "&7Reward: {reward_name}"
+          - "{reward_description}"
+          - ""
+          - "&7Required ELO: &f{required_elo}"
+          - ""
+          - "&a&lCLICK TO CLAIM"
+      cooldown:
+        material: clock
+        glow: false
+        name: "&e&lCOOLDOWN &8- {tier_color}{tier_name}"
+        lore:
+          - "&7Reward: {reward_name}"
+          - "{reward_description}"
+          - ""
+          - "&7Last claimed: &f{last_claim}"
+          - "&7Time left: &e{remaining}"
+          - "&7Available again: &f{next_claim}"
+  leaderboard:
+    title: "&8Leaderboard &7({page}/{pages})"
+    rows: 6
+    # Slots the entries go in, in order. Ranges like 0-44 are allowed.
+    entry-slots: "0-44"
+    entry:
+      # true = each entry is the player's head; false = material below.
+      player-heads: true
+      material: paper
+      name: "&e#{position} &f{player}"
+      lore:
+        - "&7{elo} ELO"
+        - "{tier_color}{tier_name}"
+    previous:
+      slot: 45
+      material: arrow
+      name: "&7Previous page"
+      lore: []
+    back:
+      slot: 49
+      material: oak_door
+      name: "&7Back"
+      lore: []
+    next:
+      slot: 53
+      material: arrow
+      name: "&7Next page"
+      lore: []
+    empty:
+      slot: 22
+      material: paper
+      name: "&7Nobody is ranked yet."
+      lore: []
+
+# ----------------------------------------------------------------------------------------------
+# Permissions. Players need no permission for /rank, /elo, /kits, /leaderboard or claiming.
+# ----------------------------------------------------------------------------------------------
+permissions:
+  admin: elo.admin
+  set: elo.admin.set
+  reset: elo.admin.reset
+  reload: elo.admin.reload
+  claim-reset: elo.admin.claimreset
+  force-tier: elo.admin.forcetier
+
+# ----------------------------------------------------------------------------------------------
+# Database. SQLite, stored in plugins/EloRanks/<file>.
+# ----------------------------------------------------------------------------------------------
+database:
+  file: eloranks.db
+
+# ----------------------------------------------------------------------------------------------
+# Messages. {prefix} is replaced by prefix below.
+# ----------------------------------------------------------------------------------------------
+messages:
+  prefix: "&8[&6ELO&8] &r"
+  elo-gained: "{prefix}&a+{amount} ELO &7for killing &f{victim}&7. You now have &f{elo} ELO&7."
+  elo-lost: "{prefix}&c-{amount} ELO &7for dying to &f{killer}&7. You now have &f{elo} ELO&7."
+  kill-not-counted: "{prefix}&7This kill did not count for ELO: {reason}"
+  reasons:
+    same-victim-cooldown: "you killed &f{victim} &7too recently (wait &f{remaining}&7)."
+    same-victim-limit: "you already killed &f{victim} &7{limit} times recently."
+    gain-limit: "you reached the ELO gain limit (&f{limit}&7) for now."
+    same-ip: "you and &f{victim} &7play from the same IP address."
+  rank-down: "{prefix}&7You dropped to {tier_color}{tier_name}&7. Rewards you already unlocked stay claimable."
+  reward-unlocked: "{prefix}&aNew reward unlocked: {reward_name}&a. Claim it in &e/kits&a."
+  reward-claimed: "{prefix}&aYou claimed {reward_name}&a! Next claim in &f{cooldown}&a."
+  reward-cooldown: "{prefix}&cYou can claim {reward_name} &cagain in &f{remaining}&c."
+  reward-locked: "{prefix}&c{tier_name} is locked. You need &f{required_elo} ELO &c(you have &f{elo}&c)."
+  not-enough-elo: "{prefix}&cYou need &f{elo_needed} &cmore ELO."
+  inventory-full: "{prefix}&cYour inventory is full. Free &f{slots} &cslots to claim {reward_name}&c."
+  reward-pending: "{prefix}&eYour inventory is full: {reward_name} &eis waiting in &f/kits &e(Pending deliveries)."
+  reward-dropped: "{prefix}&eYour inventory was full, so part of {reward_name} &ewas dropped at your feet."
+  pending-delivered: "{prefix}&aDelivered {count} pending reward(s)."
+  pending-still-full: "{prefix}&cStill not enough space for {reward_name}&c. Free &f{slots} &cslots."
+  pending-on-join: "{prefix}&eYou have &f{count} &epending reward(s). Open &f/kits &eto receive them."
+  claim-busy: "{prefix}&7Please wait, your last request is still being processed."
+  database-error: "{prefix}&cSomething went wrong saving your data. Nothing was changed, try again."
+  data-loading: "{prefix}&7Your ranking data is still loading, try again in a moment."
+  info:
+    - "&8&m                                        "
+    - "&6&lYour Rank &7{tier_color}{tier_name}"
+    - "&7Your ELO: &f{elo}"
+    - "&7Next unlock: {next_tier_color}{next_tier_name} &7- &f{next_tier_elo} ELO"
+    - "&7ELO needed: &f{elo_needed}"
+    - "{progress_bar} &f{progress_percent}%"
+    - "&7Rewards ready to claim: &a{rewards_available} &7(&e/kits&7)"
+    - "&7Kills: &f{kills} &7Deaths: &f{deaths} &7ELO gained: &a{elo_gained} &7lost: &c{elo_lost}"
+    - "&8&m                                        "
+  info-max-tier:
+    - "&8&m                                        "
+    - "&6&lYour Rank &7{tier_color}{tier_name} &6&lMAX TIER"
+    - "&7Your ELO: &f{elo}"
+    - "&7Rewards ready to claim: &a{rewards_available} &7(&e/kits&7)"
+    - "&7Kills: &f{kills} &7Deaths: &f{deaths} &7ELO gained: &a{elo_gained} &7lost: &c{elo_lost}"
+    - "&8&m                                        "
+  max-tier: "MAX TIER"
+  players-only: "{prefix}&cOnly players can use this."
+  no-permission: "{prefix}&cYou don't have permission to do that."
+  invalid-player: "{prefix}&cUnknown player: &f{player}&c. They must have joined the server before."
+  invalid-number: "{prefix}&c'{value}' is not a valid whole number."
+  invalid-tier: "{prefix}&cUnknown tier '&f{value}&c'. Use a tier number ({tiers})."
+  admin-usage:
+    - "&6/elo set <player> <amount> &7- set ELO"
+    - "&6/elo add <player> <amount> &7- add ELO"
+    - "&6/elo remove <player> <amount> &7- remove ELO"
+    - "&6/elo reset <player> &7- ELO back to the starting ELO"
+    - "&6/elo resetclaims <player> &7- clear kit cooldowns"
+    - "&6/elo resetprogress <player> &7- lock every reward again (ELO unchanged)"
+    - "&6/elo wipe <player> &7- delete all of the player's ranking data"
+    - "&6/elo forcetier <player> <tier> &7- set ELO to that tier's requirement"
+    - "&6/elo reload &7- reload config.yml"
+  admin-elo-set: "{prefix}&a{player} now has &f{elo} ELO &a({tier_color}{tier_name}&a)."
+  admin-claims-reset: "{prefix}&aReset every kit cooldown of &f{player}&a."
+  admin-progress-reset: "{prefix}&aLocked every reward of &f{player}&a again (their ELO is unchanged)."
+  admin-wiped: "{prefix}&aDeleted all ranking data of &f{player}&a."
+  reload-complete: "{prefix}&aConfiguration reloaded."
+  reload-failed: "{prefix}&cconfig.yml has errors, the old configuration is still in use. See the console."

@@ -1,0 +1,36 @@
+name: EloRanks
+version: '${version}'
+main: net.srv.eloranks.EloRanksPlugin
+api-version: '26.1'
+folia-supported: true
+softdepend: [LuckPerms]
+description: PvP ELO ranking, Tier 6 to Tier 1, claimable rank kits with a 48h cooldown, a leaderboard and LuckPerms rank display.
+authors: [srv]
+
+# Players need no permission for /rank, /elo, /kits, /leaderboard or claiming unlocked rewards.
+# The node names used by the plugin can be changed under permissions: in config.yml.
+permissions:
+  elo.admin:
+    description: Every EloRanks admin command.
+    default: op
+    children:
+      elo.admin.set: true
+      elo.admin.reset: true
+      elo.admin.reload: true
+      elo.admin.claimreset: true
+      elo.admin.forcetier: true
+  elo.admin.set:
+    description: /elo set, /elo add, /elo remove.
+    default: op
+  elo.admin.reset:
+    description: /elo reset, /elo resetprogress, /elo wipe.
+    default: op
+  elo.admin.reload:
+    description: /elo reload.
+    default: op
+  elo.admin.claimreset:
+    description: /elo resetclaims.
+    default: op
+  elo.admin.forcetier:
+    description: /elo forcetier.
+    default: op

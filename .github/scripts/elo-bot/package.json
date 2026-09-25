@@ -1,0 +1,9 @@
+{
+  "name": "elo-bot",
+  "private": true,
+  "description": "CI-only: two bot players that test EloRanks (PvP ELO, kits, leaderboard) on a test Folia server.",
+  "dependencies": {
+    "mineflayer": "^4.39.0",
+    "vec3": "^0.1.10"
+  }
+}
