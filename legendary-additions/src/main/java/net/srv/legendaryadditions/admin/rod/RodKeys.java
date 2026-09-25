@@ -15,6 +15,8 @@ public final class RodKeys {
    public static final NamespacedKey PROTECT_OWNER = key("protect_owner");
    /** Byte flag on rod projectiles: 1 = the explosion must not break blocks. */
    public static final NamespacedKey NO_BLOCK_DAMAGE = key("no_block_damage");
+   /** Float on falling TNT blocks spawned by the Stab or Nuke: the explosion power. */
+   public static final NamespacedKey FAKE_TNT = key("fake_tnt");
    /** Player data: where /admin return sends the player. */
    public static final NamespacedKey RETURN_LOCATION = key("return_location");
 

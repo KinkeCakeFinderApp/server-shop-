@@ -104,7 +104,8 @@ async function run () {
     if (!z) { record('stabshot', false, 'test husk did not spawn'); return }
     await cast()
     await sleep(700)
-    const column = Object.values(bot.entities).filter(e => e.name === 'tnt' &&
+    // Primed TNT, or falling TNT blocks when there is more TNT than spigot.yml's max-tnt-per-tick (100 here).
+    const column = Object.values(bot.entities).filter(e => (e.name === 'tnt' || e.name === 'falling_block') &&
       Math.abs(e.position.x - 10.5) < 0.6 && Math.abs(e.position.z - 0.5) < 0.6)
     record('stabshot TNT column', column.length >= 5,
       `primed TNT in the column near the bot: ${column.length}, ys=${column.map(e => Math.round(e.position.y)).sort((p, q) => p - q).slice(0, 12)}`)
@@ -133,7 +134,7 @@ async function run () {
     const z = await aimAtZombie()
     await cast()
     await sleep(1500)
-    const tnt = spawned.filter(n => n === 'tnt').length
+    const tnt = spawned.filter(n => n === 'tnt' || n === 'falling_block').length
     // The TNT spawns 70 blocks up, mostly outside this bot's entity view, so only require that some was seen.
     record('nukeshot drops TNT', tnt >= 1, `primed TNT seen=${tnt}`)
     record('nukeshot report', chat.some(m => m.includes('1169 TNT in 9 rings')), JSON.stringify(chat))

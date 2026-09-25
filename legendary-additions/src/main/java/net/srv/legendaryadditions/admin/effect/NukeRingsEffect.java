@@ -9,7 +9,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TNTPrimed;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
@@ -42,9 +41,11 @@ public final class NukeRingsEffect {
          List<Integer> counts = settings.ringCounts();
          ThreadLocalRandom random = ThreadLocalRandom.current();
 
+         int total = (settings.centerTnt() ? 1 : 0) + counts.stream().mapToInt(Integer::intValue).sum();
+         boolean primed = TntSpawner.primedFits(total);
          int spawned = 0;
          if (settings.centerTnt()) {
-            spawnTnt(spawn, new Vector(), fuse, owner, settings);
+            spawnTnt(plugin, spawn, new Vector(), fuse, owner, settings, primed);
             spawned++;
          }
          for (int ring = 0; ring < radii.size(); ring++) {
@@ -65,7 +66,7 @@ public final class NukeRingsEffect {
                   x *= clamped;
                   z *= clamped;
                }
-               spawnTnt(spawn, new Vector(x / scale, 0.0, z / scale), fuse, owner, settings);
+               spawnTnt(plugin, spawn, new Vector(x / scale, 0.0, z / scale), fuse, owner, settings, primed);
                spawned++;
             }
          }
@@ -79,12 +80,8 @@ public final class NukeRingsEffect {
       });
    }
 
-   private static void spawnTnt(Location at, Vector velocity, int fuse, UUID owner, AdminSettings.NukeRings settings) {
-      at.getWorld().spawn(at, TNTPrimed.class, tnt -> {
-         tnt.setFuseTicks(fuse);
-         tnt.setYield(settings.power());
-         tnt.setVelocity(velocity);
-         ExplosionGuard.tag(tnt, owner, !settings.damageOwner(), !settings.destroyBlocks());
-      });
+   private static void spawnTnt(Plugin plugin, Location at, Vector velocity, int fuse, UUID owner, AdminSettings.NukeRings settings,
+                                boolean primed) {
+      TntSpawner.spawn(plugin, at, velocity, true, fuse, settings.power(), owner, !settings.damageOwner(), !settings.destroyBlocks(), primed);
    }
 }

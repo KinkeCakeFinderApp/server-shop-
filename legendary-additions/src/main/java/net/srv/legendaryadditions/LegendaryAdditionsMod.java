@@ -113,6 +113,7 @@ public class LegendaryAdditionsMod extends JavaPlugin {
       pm.registerEvents(new PaxelListener(this), this);
       pm.registerEvents(new RodListener(this, registry, effects, () -> this.settings), this);
       pm.registerEvents(new ExplosionGuard(), this);
+      pm.registerEvents(net.srv.legendaryadditions.admin.effect.TntSpawner.listener(), this);
       pm.registerEvents(new MenuListener(this, guard), this);
       pm.registerEvents(chat, this);
       pm.registerEvents(new AbilityListener(this), this);
@@ -165,22 +166,12 @@ public class LegendaryAdditionsMod extends JavaPlugin {
     * 1169-TNT nuke would hang in the air and go off in slow waves instead of all at once.
     */
    private void checkTntLimit() {
-      try {
-         java.io.File spigot = new java.io.File("spigot.yml");
-         if (!spigot.isFile()) {
-            return;
-         }
-         var yaml = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(spigot);
-         int limit = yaml.getInt("world-settings.default.max-tnt-per-tick", 100);
-         int nuke = this.settings.nukeRings().ringCounts().stream().mapToInt(Integer::intValue).sum() + 1;
-         if (limit > 0 && limit < nuke) {
-            this.getLogger().warning("spigot.yml max-tnt-per-tick is " + limit + " but the Nuke uses " + nuke
-                  + " TNT. TNT over the limit is frozen each tick, so the Nuke and Stab go off slowly."
-                  + " Set world-settings.default.max-tnt-per-tick to " + Math.max(2000, nuke) + " or higher"
-                  + " in spigot.yml and restart.");
-         }
-      } catch (RuntimeException ex) {
-         this.getLogger().fine("Could not read spigot.yml: " + ex);
+      int limit = net.srv.legendaryadditions.admin.effect.TntSpawner.loadLimit();
+      int nuke = this.settings.nukeRings().ringCounts().stream().mapToInt(Integer::intValue).sum() + 1;
+      if (limit > 0 && limit < nuke) {
+         this.getLogger().info("spigot.yml max-tnt-per-tick is " + limit + " (the Nuke uses " + nuke + " TNT), so strikes"
+               + " bigger than that use falling TNT blocks, which fall the same way and are not limited. Set"
+               + " max-tnt-per-tick to " + Math.max(2000, nuke) + " or higher to use primed TNT for them.");
       }
    }
 

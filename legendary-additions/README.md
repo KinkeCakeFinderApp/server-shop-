@@ -152,7 +152,7 @@ net.srv.legendaryadditions
 - There is no target warning: `warning-time-ticks` defaults to `0`, so strikes land the moment you cast.
 - The Stab, the Nuke (both real TNT) and the Law-Nuke are vanilla explosions, so they make the normal explosion sound and particles. With `orbital-strike.style: crater`, the old stab removes blocks silently instead.
 - Old config files are upgraded automatically on startup (`config-version: 4`): the Stab switches to the TNT column and the Nuke to the Unstable SMP rings.
-- **TNT limit:** Paper and Folia can limit how many TNT are processed each tick with `max-tnt-per-tick` in `spigot.yml` (default 100). TNT over the limit is frozen for that tick, so a big strike goes off slowly. The plugin warns in the console at startup when the limit is below the Nuke's 1169 TNT; raise it (for example to 2000) if the Nuke looks slow.
+- **TNT limit:** Paper and Folia only let `max-tnt-per-tick` primed TNT (in `spigot.yml`, default 100) move and count down each tick; the rest freeze, which would leave most of a big nuke hanging in the sky. So when a strike needs more TNT than that limit, it spawns falling TNT blocks instead. They fall with exactly the same gravity and air drag as primed TNT, are not limited, and explode like TNT when they land or when their fuse runs out. Set `max-tnt-per-tick` to 2000 or more if you want real primed TNT for the Nuke and Stab.
 
 For every rod the counts, radius, damage and power are set in `config.yml`. `damage-owner: false` protects the caster from their own explosions and projectiles.
 

@@ -40,6 +40,9 @@ public final class StabColumnEffect {
          int bottom = world.getMinHeight();
          ThreadLocalRandom random = ThreadLocalRandom.current();
          List<TNTPrimed> column = new ArrayList<>();
+         int layers = (top - bottom) / settings.spacing() + 1;
+         boolean primed = TntSpawner.primedFits(layers * settings.tntPerLayer());
+         int spawned = 0;
          int lastFuse = 0;
          for (int y = top; y >= bottom; y -= settings.spacing()) {
             int fuse = settings.fuseTicks() + (settings.blocksPerTick() == 0 ? 0 : (top - y) / settings.blocksPerTick());
@@ -49,6 +52,13 @@ public final class StabColumnEffect {
                double dx = i == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.8;
                double dz = i == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.8;
                Location at = new Location(world, x + dx, y, z + dz);
+               spawned++;
+               if (!primed) {
+                  // Over spigot.yml's max-tnt-per-tick: floating TNT blocks that are not limited.
+                  TntSpawner.spawn(plugin, at, new Vector(), false, fuse, settings.power(), owner,
+                        !settings.damageOwner(), !settings.destroyBlocks(), false);
+                  continue;
+               }
                column.add(world.spawn(at, TNTPrimed.class, tnt -> {
                   tnt.setFuseTicks(fuse);
                   tnt.setYield(settings.power());
@@ -59,7 +69,6 @@ public final class StabColumnEffect {
             }
          }
 
-         int spawned = column.size();
          int endTick = lastFuse + 2;
          int[] tick = {0};
          Bukkit.getRegionScheduler().runAtFixedRate(plugin, center, task -> {
