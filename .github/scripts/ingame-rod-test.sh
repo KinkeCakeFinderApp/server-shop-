@@ -38,8 +38,8 @@ cat > server.properties <<'PROPS'
 online-mode=false
 level-type=minecraft\:flat
 generate-structures=false
-view-distance=6
-simulation-distance=6
+view-distance=10
+simulation-distance=10
 spawn-protection=0
 difficulty=easy
 PROPS

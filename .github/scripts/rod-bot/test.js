@@ -142,7 +142,8 @@ async function run () {
     record('nukeshot', !!dead, `husk at the centre ${dead ? 'killed' : 'still alive'}`)
     record('nukeshot reusable', rodCount() === before, `rods ${before}->${rodCount()}`)
     // One TNT of every ring sits on the +x axis from the target (angle 0), so each ring leaves a hole there.
-    const holes = [0, 9.8, 19.7, 28.9].map(r => {
+    // Check both sides of the target along the x axis (angle 0 and 180 degrees both have a TNT on every ring).
+    const holes = [0, 9.8, 19.7, 28.9, -9.8, -19.7, -28.9, -37.9].map(r => {
       const b = bot.blockAt(new Vec3(Math.floor(10.5 + r), -61, 0))
       return { r, block: b && b.name }
     })
