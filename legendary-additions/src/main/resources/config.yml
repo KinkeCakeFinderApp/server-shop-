@@ -6,7 +6,7 @@
 # "warning-time-ticks" is an optional delay before impact (0 by default).
 
 # Do not edit: used to update older config files automatically.
-config-version: 3
+config-version: 4
 
 # Extra sounds and particles made by the rods (warning beams, markers, charge-up sounds,
 # smoke, impact sounds, teleport sparkles, the break sound of used-up rods...).
@@ -29,33 +29,49 @@ teleport-rod:
   safe-search-radius: 3
   allow-lava-destinations: false
 
+# /stab, /stabshot
 orbital-strike:
+  # tnt    = the Unstable SMP / Orbital Strike Cannon stab: a column of primed TNT at the target
+  #          from the build limit all the way down to bedrock. The top goes off first and the
+  #          blast runs down the column, drilling a shaft to bedrock.
+  # crater = the old stab: instant damage in "radius" and a silent crater.
+  style: tnt
+  # Blocks between two TNT in the column (1 = a TNT in every block, 384 TNT in the Overworld).
+  tnt-spacing: 2
+  # TNT per level of the column. More makes the shaft wider.
+  tnt-per-layer: 1
+  # Explosion power of each TNT (vanilla TNT is 4).
+  tnt-power: 4.0
+  # Ticks before the top TNT explodes (20 = 1 second).
+  fuse-ticks: 20
+  # How many blocks the blast travels down each tick. 0 = the whole column goes off at once.
+  blocks-per-tick: 16
+  destroy-blocks: true
+  damage-owner: false
+  # Crater settings (style: crater only).
   radius: 8.0
   damage: 50.0
   knockback: 2.5
-  # Delay before impact. 0 = strikes the instant you cast.
   warning-time-ticks: 0
-  # Silently removes a sphere of blocks at the target (no explosion sound or particles).
-  destroy-blocks: true
   crater-radius: 4.0
   create-fire: false
-  damage-owner: false
 
+# /nuke, /nukeshot
 nuke:
-  # rings  = the Unstable SMP / Orbital Strike Cannon nuke: 669 TNT spawn high above the target
-  #          and spread into 10 rings as they fall, then all go off together.
+  # rings  = the Unstable SMP / Orbital Strike Cannon nuke: 1169 TNT spawn 70 blocks above the
+  #          target and spread into 9 rings (out to 81 blocks) as they fall, then all go off together.
   # crater = the old nuke: instant damage in "radius" and a silent crater.
   style: rings
   # Ring settings (style: rings). Each ring radius needs a matching TNT count.
-  ring-radii: [6.0, 11.0, 16.0, 21.0, 26.0, 31.0, 36.0, 41.0, 46.0, 51.0]
-  ring-tnt-counts: [15, 27, 38, 49, 62, 73, 83, 95, 107, 119]
+  ring-radii: [9.8, 19.7, 28.9, 37.9, 46.7, 55.5, 64.1, 72.6, 81.1]
+  ring-tnt-counts: [48, 96, 118, 132, 142, 150, 154, 162, 166]
   center-tnt: true
   # Blocks above the target where the TNT appears (capped at the world's build limit).
-  spawn-height: 72.0
+  spawn-height: 70.0
   # Ticks until the TNT explodes. The TNT speed is worked out from this so it lands on its ring.
-  fuse-ticks: 79
+  fuse-ticks: 80
   # How far (blocks) each TNT may randomly drift from its exact ring position.
-  misalign: 0.5
+  misalign: 0.0
   # Explosion power of each TNT (vanilla TNT is 4).
   tnt-power: 4.0
   destroy-blocks: true

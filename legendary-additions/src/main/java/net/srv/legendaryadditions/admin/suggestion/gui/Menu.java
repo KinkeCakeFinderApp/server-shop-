@@ -28,6 +28,13 @@ public final class Menu implements InventoryHolder {
    private final Predicate<Player> access;
    private final Inventory inventory;
    private final Map<Integer, Action> actions = new HashMap<>();
+   private BottomAction bottom;
+
+   /** A click on an item in the viewer's own inventory while this screen is open. */
+   @FunctionalInterface
+   public interface BottomAction {
+      void run(Player player, ItemStack clicked, ClickType click);
+   }
 
    public Menu(UUID viewer, int rows, Component title, boolean adminOnly) {
       this(viewer, rows, title, adminOnly ? SuggestionAccess::isAdmin : null);
@@ -47,6 +54,15 @@ public final class Menu implements InventoryHolder {
    public void set(int slot, ItemStack item, Action action) {
       this.inventory.setItem(slot, item);
       this.actions.put(slot, action);
+   }
+
+   /** Lets the viewer pick items from their own inventory (the items never move). */
+   public void onBottomClick(BottomAction action) {
+      this.bottom = action;
+   }
+
+   BottomAction bottomAction() {
+      return this.bottom;
    }
 
    Action action(int slot) {

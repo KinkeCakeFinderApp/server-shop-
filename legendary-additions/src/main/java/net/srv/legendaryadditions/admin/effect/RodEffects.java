@@ -11,7 +11,11 @@ public final class RodEffects {
 
    public RodEffects(Plugin plugin) {
       this.effects.put(RodKind.ORBITAL, (caster, target, s) -> {
-         StrikeEffect.launch(plugin, target.center(), s.orbital(), StrikeEffect.Style.ORBITAL, caster.getUniqueId());
+         if (s.stab().tnt()) {
+            StabColumnEffect.launch(plugin, target.center(), s.stab(), caster.getUniqueId());
+         } else {
+            StrikeEffect.launch(plugin, target.center(), s.orbital(), StrikeEffect.Style.ORBITAL, caster.getUniqueId());
+         }
          return true;
       });
       this.effects.put(RodKind.NUKE, (caster, target, s) -> {

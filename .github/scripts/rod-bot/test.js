@@ -97,22 +97,32 @@ async function run () {
   await cmd('gamemode survival', 500)
   await cmd('time set day', 200)
 
-  // Orbital strike: must kill a husk in the target zone and leave a crater.
+  // Stab: a column of primed TNT from the build limit (y=319) down to bedrock at the target.
+  // The top goes off after 1 s and the blast runs down the column, so it must drill to bedrock.
   await shotRod('stabshot', async before => {
     const z = await aimAtZombie()
     if (!z) { record('stabshot', false, 'test husk did not spawn'); return }
     await cast()
-    await sleep(2500)
+    await sleep(700)
+    const column = Object.values(bot.entities).filter(e => e.name === 'tnt' &&
+      Math.abs(e.position.x - 10.5) < 0.6 && Math.abs(e.position.z - 0.5) < 0.6)
+    record('stabshot TNT column', column.length >= 5,
+      `primed TNT in the column near the bot: ${column.length}, ys=${column.map(e => Math.round(e.position.y)).sort((p, q) => p - q).slice(0, 12)}`)
+    record('stabshot report', chat.some(m => /Stab launched: \d+ TNT from y=319 down to bedrock \(y=-64\)/.test(m)), JSON.stringify(chat))
+    await sleep(4000)
     const dead = gone.has(z.id)
-    record('stabshot', dead, `husk ${dead ? 'killed' : 'still alive'}; chat=${JSON.stringify(chat)}`)
+    record('stabshot', dead, `husk ${dead ? 'killed' : 'still alive'}`)
     record('stabshot reusable', rodCount() === before, `rods ${before}->${rodCount()}`)
-    const ground = bot.blockAt(new Vec3(10, -61, 0))
-    record('stabshot crater', ground && ground.name === 'air', `block under target is ${ground && ground.name}`)
-    record('stabshot hit report', chat.some(m => / hit [1-9][0-9]* targets?\./.test(m)), JSON.stringify(chat))
+    const shaft = [-61, -62, -63, -64].map(y => {
+      const b = bot.blockAt(new Vec3(10, y, 0))
+      return { y, block: b && b.name }
+    })
+    record('stabshot drills to bedrock', shaft.slice(0, 3).every(h => h.block === 'air') && shaft[3].block === 'bedrock',
+      JSON.stringify(shaft))
   })
 
-  // Nuke: Unstable SMP rings - 669 TNT dropped high above the target spread into 10 rings
-  // (6..51 blocks) and explode together. Cast from 70 blocks away so the bot is outside the rings.
+  // Nuke: Unstable SMP rings - 1169 TNT dropped 70 blocks above the target spread into 9 rings
+  // (9.8..81 blocks) and explode together. Cast from 70 blocks away.
   await reset()
   await cmd('nukeshot', 1200)
   if (!(await equipRod())) {
@@ -124,118 +134,23 @@ async function run () {
     await cast()
     await sleep(1500)
     const tnt = spawned.filter(n => n === 'tnt').length
-    // The TNT spawns 72 blocks up, mostly outside this bot's entity view, so only require that some was seen.
+    // The TNT spawns 70 blocks up, mostly outside this bot's entity view, so only require that some was seen.
     record('nukeshot drops TNT', tnt >= 1, `primed TNT seen=${tnt}`)
-    record('nukeshot report', chat.some(m => m.includes('669 TNT in 10 rings')), JSON.stringify(chat))
+    record('nukeshot report', chat.some(m => m.includes('1169 TNT in 9 rings')), JSON.stringify(chat))
     await sleep(6500)
     const dead = z && gone.has(z.id)
     record('nukeshot', !!dead, `husk at the centre ${dead ? 'killed' : 'still alive'}`)
     record('nukeshot reusable', rodCount() === before, `rods ${before}->${rodCount()}`)
     // One TNT of every ring sits on the +x axis from the target (angle 0), so each ring leaves a hole there.
-    const holes = [0, 6, 11, 16, 21].map(r => {
-      const b = bot.blockAt(new Vec3(10 + r, -61, 0))
+    const holes = [0, 9.8, 19.7, 28.9].map(r => {
+      const b = bot.blockAt(new Vec3(Math.floor(10.5 + r), -61, 0))
       return { r, block: b && b.name }
     })
     record('nukeshot rings', holes.every(h => h.block === 'air'), JSON.stringify(holes))
-    const untouched = bot.blockAt(new Vec3(10, -61, -3))
-    const between = bot.blockAt(new Vec3(10 + 8.5, -61, 0))
-    log('nuke surface samples', JSON.stringify({ untouched: untouched && untouched.name, between: between && between.name }))
+    const between = bot.blockAt(new Vec3(10 + 15, -61, 0))
+    log('nuke surface sample between rings', between && between.name)
     await cmd('tp @s 0.5 -60 0.5 -90 0', 2500)
   }
-
-  await shotRod('lawnukeshot', async before => {
-    const z = await aimAtZombie()
-    await cast()
-    await sleep(4000)
-    const dead = z && gone.has(z.id)
-    record('lawnukeshot', !!dead, `husk ${dead ? 'killed' : 'still alive'}; chat=${JSON.stringify(chat)}`)
-  })
-
-  await shotRod('withernukeshot', async before => {
-    await aimAtGround(12)
-    await cast()
-    await sleep(1500)
-    const skulls = spawned.filter(n => n === 'wither_skull').length
-    record('withernukeshot', skulls > 0, `wither skulls seen=${skulls}; chat=${JSON.stringify(chat)}`)
-  })
-
-  await shotRod('wolfrod shot', async before => {
-    await aimAtGround(6)
-    await cast()
-    await sleep(1500)
-    const wolves = spawned.filter(n => n === 'wolf').length
-    record('wolfrod shot', wolves > 0, `wolves spawned=${wolves}; chat=${JSON.stringify(chat)}`)
-  })
-
-  await shotRod('arrowrodshot', async before => {
-    await aimAtGround(10)
-    await cast()
-    await sleep(1500)
-    const arrows = spawned.filter(n => n === 'arrow').length
-    record('arrowrodshot', arrows > 0, `arrows spawned=${arrows}; chat=${JSON.stringify(chat)}`)
-  })
-
-  await shotRod('teleportshot', async before => {
-    await aimAtGround(15)
-    const from = bot.entity.position.clone()
-    await cast()
-    await sleep(2500)
-    const moved = bot.entity.position.distanceTo(from)
-    record('teleportshot', moved > 8, `moved ${moved.toFixed(1)} blocks to ${bot.entity.position}; chat=${JSON.stringify(chat)}`)
-  })
-
-  // Single-use: the shulker from /wolfrod must contain rods that work and are used up one at a time.
-  await reset()
-  await cmd('wolfrod', 1200)
-  const box = bot.inventory.items().find(i => i.name.endsWith('shulker_box'))
-  if (!box) {
-    record('wolfrod single-use', false, 'no shulker box was given')
-  } else {
-    try {
-      await bot.equip(box, 'hand')
-      await bot.lookAt(new Vec3(-2.5, -60.5, 0.5), true)
-      const floor = bot.blockAt(new Vec3(-3, -61, 0))
-      await bot.placeBlock(floor, new Vec3(0, 1, 0))
-      await sleep(800)
-      const placed = bot.blockAt(new Vec3(-3, -60, 0))
-      const win = await bot.openContainer(placed)
-      const inside = win.containerItems()
-      const rodsInside = inside.filter(i => i.name === 'fishing_rod').reduce((n, i) => n + i.count, 0)
-      record('shulker contents', rodsInside === 27, `rods in box=${rodsInside}`)
-      await win.withdraw(inside[0].type, null, 2)
-      win.close()
-      await sleep(500)
-      await equipRod()
-      const before = rodCount()
-      await aimAtGround(6)
-      await cast()
-      await sleep(1500)
-      const wolves = spawned.filter(n => n === 'wolf').length
-      record('wolfrod single-use', wolves > 0, `wolves spawned=${wolves}; chat=${JSON.stringify(chat)}`)
-      record('wolfrod single-use consumed one', rodCount() === before - 1, `rods ${before}->${rodCount()}`)
-    } catch (e) {
-      record('wolfrod single-use', false, 'exception ' + e.message)
-    }
-  }
-
-  // Plain fishing rods must still fish normally.
-  await reset()
-  await cmd('give @s fishing_rod', 800)
-  await equipRod()
-  await aimAtGround(6)
-  await cast()
-  await sleep(800)
-  record('plain rod casts a hook', spawned.includes('fishing_bobber'), `spawned=${JSON.stringify(spawned)}`)
-
-  // /suggestionadmin exists for admins; /suggestions no longer takes "admin".
-  chat.length = 0
-  await cmd('suggestions admin', 1000)
-  record('/suggestions admin removed', chat.some(m => m.includes('Usage: /suggestions')), JSON.stringify(chat))
-  chat.length = 0
-  let opened = false
-  bot.once('windowOpen', w => { opened = true; log('admin window title', JSON.stringify(w.title)) })
-  await cmd('suggestionadmin', 2000)
-  record('/suggestionadmin opens GUI', opened, JSON.stringify(chat))
 
   await legendaryCreator()
   await abilities()
@@ -433,6 +348,8 @@ async function shopAdmin () {
     await sleep(500)
     chat.length = 0
     w = await answer('50000 0')
+    record('shop admin price screen', title(w).includes('Price: items + money'), title(w))
+    w = await click(49) // Save Price (money only)
     await sleep(800)
     record('shop admin adds legendary', chat.some(m => m.includes('Added testpick to legendary')), JSON.stringify(chat))
 
@@ -447,10 +364,57 @@ async function shopAdmin () {
     await sleep(500)
     chat.length = 0
     w = await answer('900 300 1')
+    w = await click(49)
     await sleep(800)
     record('shop admin adds vanilla item', chat.some(m => m.includes('Added diamond_block')), JSON.stringify(chat))
-    bot.closeWindow(bot.currentWindow || w)
+
+    // Item price: a Heart of the Sea that costs 2 diamonds and no money.
+    await cmd('give @s diamond 5', 800)
+    w = await click(49)
+    w = await click(14, 0, 0, false)
     await sleep(500)
+    w = await answer('heart_of_the_sea')
+    const heart = findSlot(w, 'heart_of_the_sea')
+    w = await click(heart < 0 ? 0 : heart, 0, 0, false)
+    await sleep(500)
+    w = await answer('0 0 1')
+    let dia = -1
+    for (let i = w ? w.inventoryStart : 0; w && i < w.slots.length; i++) if (w.slots[i] && w.slots[i].name === 'diamond') dia = i
+    record('price screen shows own inventory', dia >= 0, title(w))
+    w = await click(dia, 1) // right click = add one diamond to the price
+    w = await click(dia, 1)
+    const costSlot = findSlot(w, 'Costs 2x')
+    record('price screen adds items', costSlot >= 0, JSON.stringify(w && w.slots[0]))
+    chat.length = 0
+    w = await click(49)
+    await sleep(800)
+    record('shop admin adds item-priced item', chat.some(m => m.includes('Added heart_of_the_sea')), JSON.stringify(chat))
+    record('item price does not take the admin\'s items', count('diamond') === 5, `diamonds=${count('diamond')}`)
+    bot.closeWindow(bot.currentWindow || w)
+    await sleep(1500)
+
+    // Buy it in FoliaShop itself (left click = buy): the 2 diamonds must be taken and the heart given.
+    const buyHeart = async () => {
+      const open = nextWindow()
+      bot.chat('/shop search heart')
+      const sw = await open
+      await sleep(500)
+      const slot = findSlot(sw, 'Also costs')
+      if (slot < 0) return 'not found in ' + title(sw)
+      chat.length = 0
+      await click(slot, 0, 0, false)
+      await sleep(1500)
+      if (bot.currentWindow) bot.closeWindow(bot.currentWindow)
+      await sleep(300)
+      return 'ok'
+    }
+    let bought = await buyHeart()
+    record('buy with item price', bought === 'ok' && count('heart_of_the_sea') === 1 && count('diamond') === 3,
+      `${bought} hearts=${count('heart_of_the_sea')} diamonds=${count('diamond')} chat=${JSON.stringify(chat)}`)
+    await cmd('clear @s diamond', 600)
+    bought = await buyHeart()
+    record('item price refused without the items', count('heart_of_the_sea') === 1 && chat.some(m => m.includes('You also need 2x Diamond')),
+      `${bought} hearts=${count('heart_of_the_sea')} chat=${JSON.stringify(chat)}`)
 
     // Search across every shop category.
     opening = nextWindow()

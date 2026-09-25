@@ -41,7 +41,11 @@ public final class MenuListener implements Listener {
          player.closeInventory();
          return;
       }
-      if (event.getClickedInventory() == null || !event.getClickedInventory().equals(top)) {
+      if (event.getClickedInventory() == null) {
+         return;
+      }
+      if (!event.getClickedInventory().equals(top)) {
+         this.bottomClick(event, menu, player);
          return;
       }
       int slot = event.getRawSlot();
@@ -63,6 +67,29 @@ public final class MenuListener implements Listener {
       }
       try {
          action.run(player, click);
+      } catch (RuntimeException ex) {
+         this.plugin.getLogger().log(Level.SEVERE, "GUI action failed for " + player.getName(), ex);
+         Messages.error(player, Messages.ACTION_FAILED);
+      }
+   }
+
+   private void bottomClick(InventoryClickEvent event, Menu menu, Player player) {
+      Menu.BottomAction action = menu.bottomAction();
+      ClickType click = event.getClick();
+      if (action == null || (click != ClickType.LEFT && click != ClickType.RIGHT)) {
+         return;
+      }
+      if (!menu.allowed(player)) {
+         player.closeInventory();
+         Messages.error(player, Messages.NO_PERMISSION);
+         return;
+      }
+      org.bukkit.inventory.ItemStack clicked = event.getCurrentItem();
+      if (clicked == null || clicked.getType().isAir() || !this.guard.tryClick(player.getUniqueId())) {
+         return;
+      }
+      try {
+         action.run(player, clicked.clone(), click);
       } catch (RuntimeException ex) {
          this.plugin.getLogger().log(Level.SEVERE, "GUI action failed for " + player.getName(), ex);
          Messages.error(player, Messages.ACTION_FAILED);

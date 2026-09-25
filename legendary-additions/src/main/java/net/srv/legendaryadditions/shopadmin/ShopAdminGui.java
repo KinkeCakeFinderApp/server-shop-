@@ -33,7 +33,9 @@ import org.bukkit.plugin.Plugin;
 /**
  * /shop admin: browse FoliaShop's categories, search every shop item, change prices, remove items
  * and add new ones - custom legendaries from the Legendary Creator, the built-in legendaries, any
- * vanilla item (searched by name) or the item in your hand.
+ * vanilla item (searched by name) or the item in your hand. A price is money, items, or both:
+ * after typing the money price, the Price screen lets the admin click items in their inventory to
+ * add them to the price.
  */
 public final class ShopAdminGui {
    public static final String PERMISSION = "legendaryadditions.shopadmin";
@@ -59,6 +61,12 @@ public final class ShopAdminGui {
       this.store = store;
       this.legendaries = legendaries;
       this.chat = chat;
+   }
+
+   /** A built-in legendary by id, or null. */
+   public static ItemStack builtIn(String id) {
+      java.util.function.Supplier<ItemStack> maker = BUILT_INS.get(id.toLowerCase(Locale.ROOT));
+      return maker == null ? null : maker.get();
    }
 
    private boolean check(Player player) {
@@ -164,6 +172,9 @@ public final class ShopAdminGui {
       }
       lore.add(Items.text("ID: " + entry.id() + (entry.enabled() ? "" : " (disabled)"), NamedTextColor.GRAY));
       lore.add(Items.text("Buy: " + money(entry.buy()) + "   Sell: " + money(entry.sell()), NamedTextColor.YELLOW));
+      for (ItemStack cost : entry.itemCost()) {
+         lore.add(Items.text(" + " + cost.getAmount() + "x " + FoliaShopStore.itemName(cost), NamedTextColor.GOLD));
+      }
       lore.add(Items.text("Amount: " + entry.amount() + "   Slot: " + entry.slot(), NamedTextColor.GRAY));
       if (entry.legendaryId() != null) {
          lore.add(Items.text("Gives legendary: " + entry.legendaryId(), NamedTextColor.LIGHT_PURPLE));
@@ -181,8 +192,9 @@ public final class ShopAdminGui {
                .whenComplete((v, error) -> this.done(p, error, "Removed " + entry.id() + " from the shop.", reopen)), reopen);
       } else if (click.isLeftClick()) {
          boolean legendary = entry.legendaryId() != null;
-         this.askPrices(player, legendary, (buy, sell, amount) -> this.store.setPrices(entry.category(), entry.id(), buy, sell, legendary ? 1 : amount)
-               .whenComplete((v, error) -> this.done(player, error, "Updated " + entry.id() + ": buy " + money(buy) + ", sell " + money(sell) + ".", reopen)));
+         this.askPrices(player, legendary, entry.itemCost(), (buy, sell, amount, cost) -> this.store.setPrices(entry.category(), entry.id(), buy, sell,
+                     legendary ? 1 : amount, cost)
+               .whenComplete((v, error) -> this.done(player, error, "Updated " + entry.id() + ": " + priceText(buy, cost) + ", sell " + money(sell) + ".", reopen)));
       }
    }
 
@@ -264,10 +276,10 @@ public final class ShopAdminGui {
       Menu menu = new Menu(player.getUniqueId(), 6, Items.text("Pick a custom legendary", NamedTextColor.DARK_PURPLE), ACCESS);
       int slot = 0;
       for (LegendaryDef def : all.subList(current * 45, Math.min(all.size(), current * 45 + 45))) {
-         menu.set(slot++, LegendaryItems.build(def), (p, c) -> this.askPrices(p, true, (buy, sell, amount) -> {
+         menu.set(slot++, LegendaryItems.build(def), (p, c) -> this.askPrices(p, true, List.of(), (buy, sell, amount, cost) -> {
             Map<String, Object> values = FoliaShopStore.legendaryValues(def);
             putPrices(values, buy, sell);
-            this.add(p, catId, def.id(), values);
+            this.add(p, catId, def.id(), values, cost, null);
          }));
       }
       if (all.isEmpty()) {
@@ -294,7 +306,7 @@ public final class ShopAdminGui {
       int slot = 11;
       for (Map.Entry<String, java.util.function.Supplier<ItemStack>> e : BUILT_INS.entrySet()) {
          ItemStack item = e.getValue().get();
-         menu.set(slot++, item.clone(), (p, c) -> this.askPrices(p, true, (buy, sell, amount) -> {
+         menu.set(slot++, item.clone(), (p, c) -> this.askPrices(p, true, List.of(), (buy, sell, amount, cost) -> {
             Map<String, Object> values = new LinkedHashMap<>();
             values.put("enabled", true);
             values.put("material", item.getType().getKey().toString());
@@ -314,7 +326,7 @@ public final class ShopAdminGui {
             values.put("tags", Map.of("legendaryadditions:item_id", e.getKey()));
             values.put("match", FoliaShopStore.matchNbt());
             putPrices(values, buy, sell);
-            this.add(p, catId, e.getKey(), values);
+            this.add(p, catId, e.getKey(), values, cost, null);
          }));
       }
       menu.set(22, Items.icon(Material.ARROW, "Back", NamedTextColor.WHITE), (p, c) -> this.openAddPicker(p, catId));
@@ -341,13 +353,14 @@ public final class ShopAdminGui {
       int slot = 0;
       for (Material m : hits.subList(current * 45, Math.min(hits.size(), current * 45 + 45))) {
          menu.set(slot++, Items.icon(m, Items.text(pretty(m.getKey().getKey()), NamedTextColor.WHITE), lines("Click to add to " + catId + "."), false),
-               (p, c) -> this.askPrices(p, false, (buy, sell, amount) -> {
+               (p, c) -> this.askPrices(p, false, List.of(), (buy, sell, amount, cost) -> {
                   Map<String, Object> values = new LinkedHashMap<>();
                   values.put("enabled", true);
                   values.put("material", m.getKey().toString());
+                  values.put("name", "&f" + pretty(m.getKey().getKey()));
                   values.put("amount", Math.max(1, Math.min(m.getMaxStackSize(), amount)));
                   putPrices(values, buy, sell);
-                  this.add(p, catId, m.getKey().getKey(), values);
+                  this.add(p, catId, m.getKey().getKey(), values, cost, null);
                }));
       }
       if (hits.isEmpty()) {
@@ -377,14 +390,33 @@ public final class ShopAdminGui {
       if (legendary != null && this.legendaries.get(legendary) != null) {
          // A custom legendary is better sold through the give command, which always hands out the latest version.
          LegendaryDef def = this.legendaries.get(legendary);
-         this.askPrices(player, true, (buy, sell, amount) -> {
+         this.askPrices(player, true, List.of(), (buy, sell, amount, cost) -> {
             Map<String, Object> values = FoliaShopStore.legendaryValues(def);
             putPrices(values, buy, sell);
-            this.add(player, catId, def.id(), values);
+            this.add(player, catId, def.id(), values, cost, null);
          });
          return;
       }
-      this.askPrices(player, false, (buy, sell, amount) -> {
+      ItemStack product = held.clone();
+      this.askPrices(player, false, List.of(), (buy, sell, amount, cost) -> {
+         if (!cost.isEmpty()) {
+            // FoliaShop's addheld cannot take items as payment, so this entry is sold through la_shopbuy.
+            Map<String, Object> values = new LinkedHashMap<>();
+            values.put("enabled", true);
+            values.put("material", product.getType().getKey().toString());
+            ItemMeta meta = product.getItemMeta();
+            values.put("name", meta != null && meta.customName() != null
+                  ? LegacyComponentSerializer.legacyAmpersand().serialize(meta.customName())
+                  : "&f" + FoliaShopStore.itemName(product));
+            if (meta != null && meta.lore() != null) {
+               values.put("lore", meta.lore().stream().map(l -> LegacyComponentSerializer.legacyAmpersand().serialize(l)).toList());
+            }
+            values.put("glint", meta != null && meta.hasEnchants());
+            values.put("amount", Math.max(1, Math.min(product.getMaxStackSize(), amount)));
+            putPrices(values, buy, sell);
+            this.add(player, catId, product.getType().getKey().getKey(), values, cost, product);
+            return;
+         }
          String id = FoliaShopStore.sanitize(held.getType().getKey().getKey()) + "_" + Long.toString(System.currentTimeMillis() % 100000, 36);
          this.withShops(player, cats -> {
             int slot = cats.stream().filter(c -> c.id().equals(catId)).findFirst()
@@ -399,8 +431,8 @@ public final class ShopAdminGui {
       });
    }
 
-   private void add(Player player, String catId, String baseId, Map<String, Object> values) {
-      this.store.add(catId, baseId, values).whenComplete((id, error) -> this.done(player, error,
+   private void add(Player player, String catId, String baseId, Map<String, Object> values, List<ItemStack> cost, ItemStack product) {
+      this.store.add(catId, baseId, values, cost, product).whenComplete((id, error) -> this.done(player, error,
             "Added " + id + " to " + catId + ". It is in /shop now.", () -> this.openCategory(player, catId, 0)));
       this.plugin.getLogger().info(player.getName() + " added '" + baseId + "' to FoliaShop category '" + catId + "' from /shop admin.");
    }
@@ -409,14 +441,15 @@ public final class ShopAdminGui {
 
    @FunctionalInterface
    private interface Prices {
-      void accept(double buy, double sell, int amount);
+      void accept(double buy, double sell, int amount, List<ItemStack> cost);
    }
 
-   private void askPrices(Player player, boolean legendary, Prices then) {
+   /** Money price in chat, then the Price screen for the item part of the price. */
+   private void askPrices(Player player, boolean legendary, List<ItemStack> cost, Prices then) {
       player.closeInventory();
       Messages.info(player, legendary
-            ? "Type the prices in chat: <buy> <sell>, e.g. '50000 0'. Sell 0 = players cannot sell it back. Type 'cancel' to stop."
-            : "Type the prices in chat: <buy> <sell> [amount], e.g. '100 25 16'. Sell 0 = cannot be sold. Type 'cancel' to stop.");
+            ? "Type the money prices in chat: <buy> <sell>, e.g. '50000 0'. Buy 0 = costs only items (added next). Sell 0 = cannot be sold back. Type 'cancel' to stop."
+            : "Type the money prices in chat: <buy> <sell> [amount], e.g. '100 25 16'. Buy 0 = costs only items (added next). Sell 0 = cannot be sold. Type 'cancel' to stop.");
       this.chat.ask(player, INPUT_SECONDS, TIMEOUT, (p, text) -> {
          String[] parts = text.trim().split("\\s+");
          try {
@@ -426,12 +459,97 @@ public final class ShopAdminGui {
             if (buy < 0 || sell < 0 || amount < 1 || amount > 64 || !Double.isFinite(buy) || !Double.isFinite(sell)) {
                throw new NumberFormatException();
             }
-            then.accept(buy, sell, amount);
+            this.openCostEditor(p, buy, sell, amount, new ArrayList<>(cost.stream().map(ItemStack::clone).toList()), then);
          } catch (RuntimeException ex) {
             Messages.error(p, "Could not read '" + text + "'. Example: 100 25 16");
-            this.askPrices(p, legendary, then);
+            this.askPrices(p, legendary, cost, then);
          }
       });
+   }
+
+   /**
+    * The Price screen: the money price plus any items. Click an item in your inventory to add it
+    * (left = the whole stack, right = one); on a price item left = +1, right = -1, shift + right =
+    * remove. Nothing is taken from the admin's inventory.
+    */
+   private void openCostEditor(Player player, double buy, double sell, int amount, List<ItemStack> cost, Prices then) {
+      Menu menu = new Menu(player.getUniqueId(), 6, Items.text("Price: items + money", NamedTextColor.DARK_GREEN), ACCESS);
+      for (int i = 0; i < cost.size() && i < 36; i++) {
+         ItemStack stack = cost.get(i);
+         int index = i;
+         ItemStack icon = stack.clone();
+         ItemMeta meta = icon.getItemMeta();
+         List<Component> lore = new ArrayList<>(meta.lore() == null ? List.of() : meta.lore());
+         lore.add(Items.text("Costs " + stack.getAmount() + "x", NamedTextColor.GOLD));
+         lore.add(Items.text("Left +1, right -1, shift + right: remove", NamedTextColor.GRAY));
+         meta.lore(lore);
+         icon.setItemMeta(meta);
+         icon.setAmount(Math.max(1, Math.min(icon.getMaxStackSize(), stack.getAmount())));
+         menu.set(i, icon, (p, click) -> {
+            ItemStack target = cost.get(index);
+            if (click == ClickType.SHIFT_RIGHT || (click.isRightClick() && target.getAmount() <= 1)) {
+               cost.remove(index);
+            } else if (click.isRightClick()) {
+               target.setAmount(target.getAmount() - 1);
+            } else {
+               target.setAmount(Math.min(9999, target.getAmount() + 1));
+            }
+            this.openCostEditor(p, buy, sell, amount, cost, then);
+         });
+      }
+      if (cost.isEmpty()) {
+         menu.set(13, Items.icon(Material.HOPPER, "No item price yet", NamedTextColor.GRAY, "Click items in your inventory below", "to add them to the price.",
+               "Left click = whole stack, right click = one.", "Leave it empty for a money-only price."));
+      }
+      for (int i = 36; i < 54; i++) {
+         menu.set(i, Items.filler());
+      }
+      menu.set(45, Items.icon(Material.BARRIER, "Cancel", NamedTextColor.RED, "Nothing is changed."), (p, c) -> {
+         p.closeInventory();
+         Messages.info(p, "Cancelled, the shop was not changed.");
+      });
+      menu.set(47, Items.icon(Material.GOLD_INGOT, "Money: buy " + money(buy) + ", sell " + money(sell), NamedTextColor.YELLOW,
+            "Amount: " + amount, "Typed in chat before this screen."));
+      menu.set(49, Items.icon(Material.LIME_CONCRETE, "Save Price", NamedTextColor.GREEN, priceText(buy, cost)), (p, c) -> {
+         if (buy <= 0 && cost.isEmpty()) {
+            Messages.error(p, "Add at least one item, or cancel and type a buy price above 0.");
+            return;
+         }
+         p.closeInventory();
+         then.accept(buy, sell, amount, List.copyOf(cost));
+      });
+      menu.set(51, Items.icon(Material.LAVA_BUCKET, "Clear Items", NamedTextColor.GOLD, "Removes every item from the price."), (p, c) -> {
+         cost.clear();
+         this.openCostEditor(p, buy, sell, amount, cost, then);
+      });
+      menu.onBottomClick((p, clicked, click) -> {
+         ItemStack add = clicked.clone();
+         if (click.isRightClick()) {
+            add.setAmount(1);
+         }
+         ItemStack same = cost.stream().filter(c -> c.isSimilar(add)).findFirst().orElse(null);
+         if (same != null) {
+            same.setAmount(Math.min(9999, same.getAmount() + add.getAmount()));
+         } else if (cost.size() < 36) {
+            cost.add(add);
+         } else {
+            Messages.error(p, "A price can have at most 36 different items.");
+            return;
+         }
+         this.openCostEditor(p, buy, sell, amount, cost, then);
+      });
+      player.openInventory(menu.getInventory());
+   }
+
+   private static String priceText(double buy, List<ItemStack> cost) {
+      List<String> parts = new ArrayList<>();
+      if (buy > 0 || cost.isEmpty()) {
+         parts.add("buy " + money(buy));
+      }
+      for (ItemStack c : cost) {
+         parts.add(c.getAmount() + "x " + FoliaShopStore.itemName(c));
+      }
+      return String.join(" + ", parts);
    }
 
    private static void putPrices(Map<String, Object> values, double buy, double sell) {

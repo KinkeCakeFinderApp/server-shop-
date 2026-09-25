@@ -10,6 +10,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 public record AdminSettings(
       Targeting targeting,
       Strike orbital,
+      StabColumn stab,
       Strike nuke,
       NukeRings nukeRings,
       Teleport teleport,
@@ -32,8 +33,16 @@ public record AdminSettings(
                            int fuseTicks, double misalign, boolean centerTnt, float power, boolean destroyBlocks,
                            boolean damageOwner) {}
 
-   public static final List<Double> DEFAULT_RING_RADII = List.of(6.0, 11.0, 16.0, 21.0, 26.0, 31.0, 36.0, 41.0, 46.0, 51.0);
-   public static final List<Integer> DEFAULT_RING_COUNTS = List.of(15, 27, 38, 49, 62, 73, 83, 95, 107, 119);
+   /** The Unstable SMP datapack nuke: 1 centre TNT plus 9 rings, 1169 TNT in total. */
+   public static final List<Double> DEFAULT_RING_RADII = List.of(9.8, 19.7, 28.9, 37.9, 46.7, 55.5, 64.1, 72.6, 81.1);
+   public static final List<Integer> DEFAULT_RING_COUNTS = List.of(48, 96, 118, 132, 142, 150, 154, 162, 166);
+
+   /**
+    * style "tnt" = Unstable SMP / Orbital Strike Cannon stab: a column of primed TNT from the build
+    * limit down to bedrock; "crater" = the old silent crater strike.
+    */
+   public record StabColumn(boolean tnt, int spacing, int tntPerLayer, float power, int fuseTicks, int blocksPerTick,
+                            boolean destroyBlocks, boolean damageOwner) {}
 
    public record Teleport(double maxDistance, int safeSearchRadius, boolean allowLava) {}
 
@@ -62,6 +71,15 @@ public record AdminSettings(
       Strike nuke = strike(config.getConfigurationSection("nuke"), 20.0, 150.0, 5.0, 0, true, false, 9.0);
 
       NukeRings nukeRings = nukeRings(config);
+      StabColumn stab = new StabColumn(
+            !"crater".equalsIgnoreCase(config.getString("orbital-strike.style", "tnt")),
+            clamp(config.getInt("orbital-strike.tnt-spacing", 2), 1, 16),
+            clamp(config.getInt("orbital-strike.tnt-per-layer", 1), 1, 16),
+            (float) clamp(config.getDouble("orbital-strike.tnt-power", 4.0), 0.5, 20.0),
+            clamp(config.getInt("orbital-strike.fuse-ticks", 20), 0, 400),
+            clamp(config.getInt("orbital-strike.blocks-per-tick", 16), 0, 4096),
+            config.getBoolean("orbital-strike.destroy-blocks", true),
+            config.getBoolean("orbital-strike.damage-owner", false));
 
       Teleport teleport = new Teleport(
             positive(config.getDouble("teleport-rod.max-distance", 100.0), 100.0),
@@ -121,7 +139,7 @@ public record AdminSettings(
             Math.max(0, config.getInt("suggestions.max-pending-per-player", 5)),
             config.getBoolean("suggestions.allow-delete", true),
             config.getString("suggestions.date-format", "yyyy-MM-dd HH:mm"));
-      return new AdminSettings(targeting, orbital, nuke, nukeRings, teleport, lawNuke, witherNuke, wolfRod, arrowRod, worldKey, suggestions,
+      return new AdminSettings(targeting, orbital, stab, nuke, nukeRings, teleport, lawNuke, witherNuke, wolfRod, arrowRod, worldKey, suggestions,
             config.getBoolean("rod-effects.sounds", false),
             config.getBoolean("rod-effects.particles", false));
    }
@@ -139,9 +157,9 @@ public record AdminSettings(
             !"crater".equalsIgnoreCase(config.getString("nuke.style", "rings")),
             radii,
             counts,
-            clamp(config.getDouble("nuke.spawn-height", 72.0), 1.0, 300.0),
-            clamp(config.getInt("nuke.fuse-ticks", 79), 1, 400),
-            clamp(config.getDouble("nuke.misalign", 0.5), 0.0, 10.0),
+            clamp(config.getDouble("nuke.spawn-height", 70.0), 1.0, 300.0),
+            clamp(config.getInt("nuke.fuse-ticks", 80), 1, 400),
+            clamp(config.getDouble("nuke.misalign", 0.0), 0.0, 10.0),
             config.getBoolean("nuke.center-tnt", true),
             (float) clamp(config.getDouble("nuke.tnt-power", 4.0), 0.5, 20.0),
             config.getBoolean("nuke.destroy-blocks", true),

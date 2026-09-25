@@ -76,6 +76,8 @@ if grep -nE "Exception|Error" server.log | grep -iE "legendaryadditions|net\.srv
 fi
 grep -q "Updated config.yml" server.log || { echo "old config was not upgraded"; BOT=1; }
 grep -q "nuke.style: rings" server.log || { echo "old config did not get the nuke rings"; BOT=1; }
+grep -q "orbital-strike.style: tnt" server.log || { echo "old config did not get the TNT stab"; BOT=1; }
+grep -i "max-tnt-per-tick" server.log || true
 echo "===== legendaries.db ====="
 python3 - <<'PY' || BOT=1
 import sqlite3
@@ -97,6 +99,13 @@ assert items["testpick"]["give-item"] is False
 assert items["testpick"]["buy-price"]["amount"] == 50000
 assert items["diamond_block"]["material"] == "minecraft:diamond_block"
 assert items["diamond_block"]["sell-price"]["amount"] == 300
+heart = items["heart_of_the_sea"]
+print("heart_of_the_sea:", heart)
+assert heart["give-item"] is False
+assert heart["buy-commands"] == ["[console] la_shopbuy %player% legendary heart_of_the_sea"]
+assert heart["buy-price"] == {"provider": "xp_points", "amount": 0.0}
+assert len(heart["legendaryadditions"]["cost"]) == 1
+assert "&e - 2x Diamond" in heart["lore"]
 PY
 grep -iE "FoliaShop|foliashop" server.log | head -20
 exit $BOT

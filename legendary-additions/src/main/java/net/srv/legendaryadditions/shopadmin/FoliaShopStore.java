@@ -2,6 +2,7 @@ package net.srv.legendaryadditions.shopadmin;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -17,6 +18,9 @@ import net.srv.legendaryadditions.forge.data.LegendaryDef;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 /**
@@ -24,12 +28,27 @@ import org.bukkit.plugin.Plugin;
  * change shows in /shop straight away. Every file access runs on one IO thread, never on a region
  * thread. Custom legendaries are sold as command products: FoliaShop charges the price and runs
  * "legendary_additions give %player% &lt;id&gt;" from the console, so buyers get the exact item.
+ *
+ * <p>Item prices: FoliaShop itself can only charge money or XP. An entry with an item price keeps
+ * its money price in FoliaShop (0 when it costs only items) and runs "la_shopbuy" from the
+ * console instead of giving the item; that command takes the items and hands out the product, or
+ * refunds the money when the buyer does not have them. What it needs is stored in the entry's
+ * "legendaryadditions" section: cost (serialized items), money, and give (legendary id) or
+ * product (serialized item).</p>
  */
 public final class FoliaShopStore {
    public static final String GIVE_COMMAND = "[console] legendary_additions give %player% ";
+   public static final String BUY_COMMAND = "[console] la_shopbuy %player% ";
+   public static final String DATA = "legendaryadditions";
+   /** Keys that make FoliaShop build a product this class cannot rebuild, so no item price for those. */
+   private static final List<String> SPECIAL_PRODUCTS = List.of("saved-item", "buffed-item", "item-spawner", "smart-spawner",
+         "vanilla-spawner", "type", "items", "products");
 
    public record Entry(String category, String id, String material, String name, double buy, double sell, int amount,
-                       int slot, boolean enabled, String legendaryId) {}
+                       int slot, boolean enabled, String legendaryId, List<ItemStack> itemCost) {}
+
+   /** What la_shopbuy needs for one purchase. product is null when it gives a legendary. */
+   public record Purchase(List<ItemStack> cost, double money, String legendaryId, ItemStack product, int amount, String name) {}
 
    public record Category(String id, String name, String icon, List<Entry> entries) {}
 
@@ -84,15 +103,38 @@ public final class FoliaShopStore {
    }
 
    private static Entry entry(String catId, String itemId, ConfigurationSection item) {
-      String legendary = null;
+      String legendary = legendaryOf(item);
+      ConfigurationSection data = item.getConfigurationSection(DATA);
+      List<ItemStack> cost = data == null ? List.of() : decodeAll(data.getStringList("cost"));
+      double buy = data != null && item.getStringList("buy-commands").stream().anyMatch(c -> c.startsWith(BUY_COMMAND))
+            ? data.getDouble("money", 0) : price(item, "buy");
+      return new Entry(catId, itemId, item.getString("material", "minecraft:paper"), item.getString("name", itemId),
+            buy, price(item, "sell"), item.getInt("amount", 1), item.getInt("slot", -1),
+            item.getBoolean("enabled", true), legendary, cost);
+   }
+
+   private static String legendaryOf(ConfigurationSection item) {
+      String legendary = item.getString(DATA + ".give");
       for (String command : item.getStringList("buy-commands")) {
          if (command.startsWith(GIVE_COMMAND)) {
             legendary = command.substring(GIVE_COMMAND.length()).trim();
          }
       }
-      return new Entry(catId, itemId, item.getString("material", "minecraft:paper"), item.getString("name", itemId),
-            price(item, "buy"), price(item, "sell"), item.getInt("amount", 1), item.getInt("slot", -1),
-            item.getBoolean("enabled", true), legendary);
+      return legendary;
+   }
+
+   /** Reads what la_shopbuy needs; null when the entry no longer exists or has no item price data. */
+   public CompletableFuture<Purchase> purchase(String category, String id) {
+      return this.read(yaml -> {
+         ConfigurationSection item = yaml.getConfigurationSection("shops." + category + ".items." + id);
+         ConfigurationSection data = item == null ? null : item.getConfigurationSection(DATA);
+         if (data == null) {
+            return null;
+         }
+         String product = data.getString("product");
+         return new Purchase(decodeAll(data.getStringList("cost")), data.getDouble("money", 0), data.getString("give"),
+               product == null ? null : decode(product), Math.max(1, item.getInt("amount", 1)), item.getString("name", id));
+      });
    }
 
    /** FoliaShop accepts both "buy: 10" and "buy-price: {provider, amount}". -1 = not set. */
@@ -105,6 +147,15 @@ public final class FoliaShopStore {
 
    /** Adds an entry with a unique id in {@code category}. @return the id that was used. */
    public CompletableFuture<String> add(String category, String baseId, Map<String, Object> values) {
+      return this.add(category, baseId, values, List.of(), null);
+   }
+
+   /**
+    * Adds an entry; with a non-empty {@code cost} (or a {@code product} FoliaShop cannot give by
+    * itself, such as a held item) it is sold through la_shopbuy.
+    */
+   public CompletableFuture<String> add(String category, String baseId, Map<String, Object> values, List<ItemStack> cost,
+                                        ItemStack product) {
       return this.write(yaml -> {
          ConfigurationSection cat = yaml.getConfigurationSection("shops." + category);
          if (cat == null) {
@@ -117,7 +168,18 @@ public final class FoliaShopStore {
          }
          Map<String, Object> ordered = new LinkedHashMap<>(values);
          ordered.put("slot", freeSlot(items));
-         items.createSection(id, ordered);
+         ConfigurationSection item = items.createSection(id, ordered);
+         if (product != null) {
+            ItemStack one = product.clone();
+            one.setAmount(1);
+            item.set(DATA + ".product", encode(one));
+         }
+         if (!cost.isEmpty() || product != null) {
+            ConfigurationSection buy = item.getConfigurationSection("buy-price");
+            double money = buy == null ? Math.max(0, item.getDouble("buy", 0)) : buy.getDouble("amount", 0);
+            ConfigurationSection sell = item.getConfigurationSection("sell-price");
+            applyPricing(item, category, id, money, sell == null ? -1 : sell.getDouble("amount", -1), item.getInt("amount", 1), cost);
+         }
          return id;
       });
    }
@@ -130,18 +192,130 @@ public final class FoliaShopStore {
    }
 
    public CompletableFuture<Void> setPrices(String category, String id, double buy, double sell, int amount) {
+      return this.setPrices(category, id, buy, sell, amount, List.of());
+   }
+
+   /** Money prices plus an optional item price ({@code cost}; empty = money only). */
+   public CompletableFuture<Void> setPrices(String category, String id, double buy, double sell, int amount, List<ItemStack> cost) {
       return this.write(yaml -> {
          ConfigurationSection item = yaml.getConfigurationSection("shops." + category + ".items." + id);
          if (item == null) {
             throw new IllegalStateException("That shop item no longer exists.");
          }
-         item.set("buy", null);
-         item.set("sell", null);
-         item.set("buy-price", priceSection(buy));
-         item.set("sell-price", sell > 0 ? priceSection(sell) : null);
-         item.set("amount", amount);
+         applyPricing(item, category, id, buy, sell, amount, cost);
          return null;
       });
+   }
+
+   private void applyPricing(ConfigurationSection item, String category, String id, double buy, double sell, int amount,
+                             List<ItemStack> cost) {
+      item.set("buy", null);
+      item.set("sell", null);
+      item.set("sell-price", sell > 0 ? priceSection(sell) : null);
+      item.set("amount", amount);
+      ConfigurationSection data = item.getConfigurationSection(DATA);
+      if (cost.isEmpty() && data == null) {
+         item.set("buy-price", priceSection(buy));
+         return;
+      }
+      if (data == null) {
+         // First item price on this entry: remember what the buyer gets before FoliaShop stops giving it.
+         String legendary = legendaryOf(item);
+         ItemStack product = null;
+         if (legendary == null) {
+            if (!item.getBoolean("give-item", true) || !item.getStringList("buy-commands").isEmpty()) {
+               throw new IllegalStateException("This item runs its own buy commands, so it cannot have an item price.");
+            }
+            for (String key : SPECIAL_PRODUCTS) {
+               if (item.contains(key)) {
+                  throw new IllegalStateException("Item prices are not supported for FoliaShop '" + key + "' items.");
+               }
+            }
+            product = productFromYaml(item);
+         }
+         data = item.createSection(DATA);
+         data.set("give", legendary);
+         data.set("product", product == null ? null : encode(product));
+         data.set("lore", item.getStringList("lore"));
+      }
+      data.set("money", Math.max(0, buy));
+      data.set("cost", cost.stream().map(FoliaShopStore::encode).toList());
+      // Buy price 0 is allowed by FoliaShop (free); XP points need no economy plugin.
+      item.set("buy-price", buy > 0 ? priceSection(buy) : freePrice());
+      item.set("give-item", false);
+      item.set("buy-commands", List.of(BUY_COMMAND + category + " " + id));
+      item.set("lore", withCostLore(data.getStringList("lore"), cost));
+   }
+
+   private static List<String> withCostLore(List<String> lore, List<ItemStack> cost) {
+      List<String> out = new ArrayList<>(lore);
+      if (!cost.isEmpty()) {
+         out.add("&6Also costs:");
+         for (ItemStack stack : cost) {
+            out.add("&e - " + stack.getAmount() + "x " + itemName(stack));
+         }
+      }
+      return out;
+   }
+
+   /** The plain name of an item: its custom name, or the material name. */
+   public static String itemName(ItemStack stack) {
+      ItemMeta meta = stack.getItemMeta();
+      if (meta != null && meta.customName() != null) {
+         return net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(meta.customName());
+      }
+      if (meta != null && meta.hasItemName()) {
+         return net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(meta.itemName());
+      }
+      StringBuilder out = new StringBuilder();
+      for (String part : stack.getType().getKey().getKey().split("_")) {
+         if (!part.isEmpty()) {
+            out.append(out.isEmpty() ? "" : " ").append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+         }
+      }
+      return out.toString();
+   }
+
+   /** The item FoliaShop would have given for a plain material entry (name and lore are display-only there). */
+   private static ItemStack productFromYaml(ConfigurationSection item) {
+      ItemStack product = new ItemStack(LegendaryItems.material(item.getString("material", "minecraft:stone")));
+      ItemMeta meta = product.getItemMeta();
+      if (meta != null) {
+         ConfigurationSection enchants = item.getConfigurationSection("enchantments");
+         if (enchants != null) {
+            for (String key : enchants.getKeys(false)) {
+               Enchantment enchantment = LegendaryItems.enchantment(key.contains(":") ? key : "minecraft:" + key);
+               if (enchantment != null) {
+                  meta.addEnchant(enchantment, enchants.getInt(key, 1), true);
+               }
+            }
+         }
+         if (item.getBoolean("unbreakable", false)) {
+            meta.setUnbreakable(true);
+         }
+         product.setItemMeta(meta);
+      }
+      return product;
+   }
+
+   public static String encode(ItemStack stack) {
+      return Base64.getEncoder().encodeToString(stack.serializeAsBytes());
+   }
+
+   public static ItemStack decode(String data) {
+      return ItemStack.deserializeBytes(Base64.getDecoder().decode(data));
+   }
+
+   private static List<ItemStack> decodeAll(List<String> data) {
+      List<ItemStack> out = new ArrayList<>();
+      for (String s : data) {
+         try {
+            out.add(decode(s));
+         } catch (RuntimeException ignored) {
+            // An item from a newer or broken save is skipped rather than breaking the whole shop.
+         }
+      }
+      return out;
    }
 
    /** Keeps every shop entry that sells {@code def} in step with its latest saved version. */
@@ -170,6 +344,11 @@ public final class FoliaShopStore {
                   });
                   if (def.modelData() == null) {
                      item.set("custom-model-data", null);
+                  }
+                  ConfigurationSection data = item.getConfigurationSection(DATA);
+                  if (data != null) {
+                     data.set("lore", item.getStringList("lore"));
+                     item.set("lore", withCostLore(item.getStringList("lore"), decodeAll(data.getStringList("cost"))));
                   }
                   updated++;
                }
@@ -213,6 +392,14 @@ public final class FoliaShopStore {
       match.put("lore", false);
       match.put("nbt", true);
       return match;
+   }
+
+   /** A free FoliaShop price that needs no economy plugin (0 XP points). */
+   public static Map<String, Object> freePrice() {
+      Map<String, Object> price = new LinkedHashMap<>();
+      price.put("provider", "xp_points");
+      price.put("amount", 0.0);
+      return price;
    }
 
    public static Map<String, Object> priceSection(double amount) {

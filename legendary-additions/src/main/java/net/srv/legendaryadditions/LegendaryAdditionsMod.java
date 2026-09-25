@@ -33,6 +33,7 @@ import net.srv.legendaryadditions.forge.LegendaryService;
 import net.srv.legendaryadditions.forge.gui.LegendaryCreatorGui;
 import net.srv.legendaryadditions.shopadmin.FoliaShopStore;
 import net.srv.legendaryadditions.shopadmin.ShopAdminCommand;
+import net.srv.legendaryadditions.shopadmin.ShopBuyCommand;
 import net.srv.legendaryadditions.shopadmin.ShopAdminGui;
 import org.bukkit.Server;
 import org.bukkit.plugin.PluginManager;
@@ -56,6 +57,7 @@ public class LegendaryAdditionsMod extends JavaPlugin {
       this.migrateConfig();
       this.settings = AdminSettings.load(this.getConfig());
       Fx.configure(this.settings.rodParticles(), this.settings.rodSounds());
+      this.checkTntLimit();
 
       RodAuthenticator authenticator;
       try {
@@ -123,6 +125,7 @@ public class LegendaryAdditionsMod extends JavaPlugin {
          commands.register("suggestions", "Browse, vote on and submit suggestions.", new SuggestionsCommand(suggestionGui, access));
          commands.register("suggestionadmin", "Review and manage suggestions (admins only).", new SuggestionAdminCommand(adminGui));
          commands.register("shopadmin", "Edit /shop: add legendaries and items, change prices (same as /shop admin).", shopAdmin);
+         commands.register("la_shopbuy", "Used by FoliaShop for item prices (console only).", new ShopBuyCommand(this, this.shopStore));
          CommandRegistrar.registerRods(commands, this, registry);
       });
 
@@ -157,10 +160,34 @@ public class LegendaryAdditionsMod extends JavaPlugin {
     * and no warning delay (3.0.0 configs made them look like duds). Version 3 switches the Nuke to
     * the Unstable SMP TNT rings.
     */
+   /**
+    * spigot.yml's max-tnt-per-tick (default 100) freezes every TNT over the limit for that tick, so a
+    * 1169-TNT nuke would hang in the air and go off in slow waves instead of all at once.
+    */
+   private void checkTntLimit() {
+      try {
+         java.io.File spigot = new java.io.File("spigot.yml");
+         if (!spigot.isFile()) {
+            return;
+         }
+         var yaml = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(spigot);
+         int limit = yaml.getInt("world-settings.default.max-tnt-per-tick", 100);
+         int nuke = this.settings.nukeRings().ringCounts().stream().mapToInt(Integer::intValue).sum() + 1;
+         if (limit > 0 && limit < nuke) {
+            this.getLogger().warning("spigot.yml max-tnt-per-tick is " + limit + " but the Nuke uses " + nuke
+                  + " TNT. TNT over the limit is frozen each tick, so the Nuke and Stab go off slowly."
+                  + " Set world-settings.default.max-tnt-per-tick to " + Math.max(2000, nuke) + " or higher"
+                  + " in spigot.yml and restart.");
+         }
+      } catch (RuntimeException ex) {
+         this.getLogger().fine("Could not read spigot.yml: " + ex);
+      }
+   }
+
    private void migrateConfig() {
       var config = this.getConfig();
       int version = config.getInt("config-version", 1);
-      if (version >= 3) {
+      if (version >= 4) {
          return;
       }
       if (version < 2) {
@@ -172,18 +199,25 @@ public class LegendaryAdditionsMod extends JavaPlugin {
          config.set("nuke.destroy-blocks", true);
          config.set("nuke.crater-radius", 9.0);
          config.set("nuke.block-damage-power", null);
-         this.getLogger().info("Updated config.yml: Orbital Strike and Nuke now leave a silent crater and strike instantly.");
       }
+      // 4: both strikes now summon real TNT like Unstable SMP / Orbital Strike Cannon.
+      config.set("orbital-strike.style", "tnt");
+      config.set("orbital-strike.tnt-spacing", 2);
+      config.set("orbital-strike.tnt-per-layer", 1);
+      config.set("orbital-strike.tnt-power", 4.0);
+      config.set("orbital-strike.fuse-ticks", 20);
+      config.set("orbital-strike.blocks-per-tick", 16);
       config.set("nuke.style", "rings");
       config.set("nuke.ring-radii", AdminSettings.DEFAULT_RING_RADII);
       config.set("nuke.ring-tnt-counts", AdminSettings.DEFAULT_RING_COUNTS);
       config.set("nuke.center-tnt", true);
-      config.set("nuke.spawn-height", 72.0);
-      config.set("nuke.fuse-ticks", 79);
-      config.set("nuke.misalign", 0.5);
+      config.set("nuke.spawn-height", 70.0);
+      config.set("nuke.fuse-ticks", 80);
+      config.set("nuke.misalign", 0.0);
       config.set("nuke.tnt-power", 4.0);
-      config.set("config-version", 3);
+      config.set("config-version", 4);
       this.saveConfig();
-      this.getLogger().info("Updated config.yml: the Nuke now drops Unstable SMP style TNT rings (nuke.style: rings).");
+      this.getLogger().info("Updated config.yml: the Stab now drops a TNT column to bedrock (orbital-strike.style: tnt)"
+            + " and the Nuke drops the Unstable SMP TNT rings (nuke.style: rings).");
    }
 }
