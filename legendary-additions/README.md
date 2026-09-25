@@ -1,4 +1,4 @@
-# LegendaryAdditions 3.1 (Folia 26.1.2)
+# LegendaryAdditions 3.2 (Folia 26.1.2)
 
 This plugin contains:
 
@@ -48,7 +48,7 @@ net.srv.legendaryadditions
 │  ├─ command                      CommandRegistrar, RodGiveCommand, AdminCommand, SuggestionsCommand
 │  ├─ rod                          RodKind, RodRegistry (rod manager), RodAuthenticator (HMAC),
 │  │                               RayTargeting (targeting manager), RodListener (cast handling), RodKeys
-│  ├─ effect                       RodEffect interface + RodEffects registry, StrikeEffect (orbital), NukeRingsEffect,
+│  ├─ effect                       RodEffect interface + RodEffects registry, StabColumnEffect, NukeRingsEffect, StrikeEffect (crater style),
 │  │                               LawNukeEffect, WitherNukeEffect, WolfPackEffect, ArrowRainEffect,
 │  │                               TeleportEffect + SafeLocations (teleport manager), ExplosionGuard, Fx
 │  ├─ dimension                    AdminDimension (Admin dimension manager)
@@ -63,7 +63,7 @@ net.srv.legendaryadditions
 │  │                               LegendaryService (cache + DB thread), AbilityListener (runs the abilities)
 │  ├─ data                         LegendaryDef, LegendaryRepository (SQLite, legendaries.db)
 │  └─ gui                          LegendaryCreatorGui
-└─ shopadmin                       /shop admin: ShopAdminCommand, ShopAdminGui, FoliaShopStore (shops.yml)
+└─ shopadmin                       /shop admin: ShopAdminCommand, ShopAdminGui, FoliaShopStore (shops.yml), ShopBuyCommand (item prices)
 ```
 
 ## Commands
@@ -138,8 +138,8 @@ net.srv.legendaryadditions
 
 | Rod | Effect |
 |---|---|
-| Orbital Strike | Instant impact at the target: damage and knockback to everything within 8 blocks, and a silent crater (radius 4). A chat message tells you how many targets were hit. |
-| Nuke Shot | The Unstable SMP / Orbital Strike Cannon nuke. 669 primed TNT (the ring layout of the Orbital Strike Cannon mod: 15, 27, 38 ... 119 per ring, plus one in the centre) appear 72 blocks above the target and are pushed outwards so that, while they fall, air drag spreads them into 10 rings from 6 to 51 blocks. They land about 4 seconds later and all explode together. The ring radii, TNT per ring, height, fuse and power are in `config.yml`; `nuke.style: crater` brings back the old instant crater nuke. |
+| Orbital Strike (stab) | The Unstable SMP / Orbital Strike Cannon stab. A column of primed TNT appears at the target from the build limit (y=319) all the way down to bedrock (y=-64), one every 2 blocks (192 TNT in the Overworld). The TNT floats and is held in place; after 1 second the top goes off and the blast runs down the column (16 blocks per tick), drilling a shaft to bedrock. Spacing, TNT per layer, power, delay and speed are in `config.yml` (`orbital-strike`); `orbital-strike.style: crater` brings back the old instant crater strike. |
+| Nuke Shot | The Unstable SMP nuke, copied from the Unstable SMP orbital strike datapack. 1169 primed TNT (48, 96, 118, 132, 142, 150, 154, 162 and 166 per ring, plus one in the centre) appear 70 blocks above the target with an 80-tick fuse and are pushed outwards so that, while they fall, air drag spreads them into 9 rings from 9.8 to 81 blocks. They land about 4 seconds later and all explode together. The ring radii, TNT per ring, height, fuse and power are in `config.yml`; `nuke.style: crater` brings back the old instant crater nuke. |
 | Law-Nuke Shot | 140 TNT-strength blasts ripple across a 45-block radius (an optional fuse is set by `warning-time-ticks`). Each blast runs on the region that owns its own location. |
 | Wither Nuke Shot | 160 charged wither skulls rain from 70 blocks above the target, released 20 per tick. |
 | Wolf Rod | 53 wolves with wolf armor, Strength II, Regeneration, Speed II and Fire Resistance, tamed to the caster. They can be made temporary. |
@@ -150,9 +150,9 @@ net.srv.legendaryadditions
 - Rods still do their real effect.
 - Vanilla explosions, wither skulls and arrows still make their normal vanilla sounds.
 - There is no target warning: `warning-time-ticks` defaults to `0`, so strikes land the moment you cast.
-- Orbital Strike removes blocks directly instead of using explosions, so its crater makes no boom and no explosion particles. Set `destroy-blocks: false` to turn the crater off, or change `crater-radius`. Bedrock and other unbreakable blocks are never removed, and nothing drops.
-- The Nuke (real TNT) and the Law-Nuke are made of vanilla explosions, so they still show them.
-- Old config files are upgraded automatically on startup (`config-version: 3`): Orbital Strike gets the crater and no warning delay, and the Nuke switches to the TNT rings.
+- The Stab, the Nuke (both real TNT) and the Law-Nuke are vanilla explosions, so they make the normal explosion sound and particles. With `orbital-strike.style: crater`, the old stab removes blocks silently instead.
+- Old config files are upgraded automatically on startup (`config-version: 4`): the Stab switches to the TNT column and the Nuke to the Unstable SMP rings.
+- **TNT limit:** Paper and Folia can limit how many TNT are processed each tick with `max-tnt-per-tick` in `spigot.yml` (default 100). TNT over the limit is frozen for that tick, so a big strike goes off slowly. The plugin warns in the console at startup when the limit is below the Nuke's 1169 TNT; raise it (for example to 2000) if the Nuke looks slow.
 
 For every rod the counts, radius, damage and power are set in `config.yml`. `damage-owner: false` protects the caster from their own explosions and projectiles.
 
@@ -299,8 +299,9 @@ Needs [FoliaShop](https://modrinth.com/plugin/foliashop) (the `/shop` plugin) an
   - **Custom Legendaries** from the Legendary Creator.
   - **Built-in Legendaries**: Drill, Paxel, Embershade and Tidefire Crossbow.
   - **Search Vanilla Items**: type part of a name (`diamond`, `oak log`) and pick from the results.
-  - **Item In Your Hand**: adds exactly the held item through FoliaShop's own `addheld` command.
-- Prices are typed in chat as `<buy> <sell> [amount]`, for example `100 25 16`. A sell price of 0 means players can't sell it back.
+  - **Item In Your Hand**: adds exactly the held item (through FoliaShop's own `addheld` command when the price is money only).
+- **Prices: money, items, or both.** First type the money price in chat as `<buy> <sell> [amount]`, for example `100 25 16` (buy `0` = the item costs only items; sell `0` = players can't sell it back). Then the **Price** screen opens: click items in your own inventory to add them to the price (left click = the whole stack, right click = one; your items are not taken). On a price item, left click = +1, right click = -1, shift + right click = remove. **Save Price** saves it. Left clicking an item in a category opens the same two steps, so you can add or change item prices on existing items too.
+- **How item prices work:** FoliaShop itself can only charge money or XP. An item-priced entry keeps its money price in FoliaShop (or a free 0 XP price when it costs only items) and, instead of FoliaShop giving the item, runs `[console] la_shopbuy %player% <category> <id>`. That command takes the items and gives the product; if the buyer doesn't have them, nothing is taken and the money part is refunded through Vault. The item price is listed in the item's lore in `/shop` ("Also costs: 2x Diamond"). Items that are FoliaShop saved-items, BuffedItems or spawners can't have an item price.
 - Changes are written to `plugins/FoliaShop/shops.yml` and FoliaShop is reloaded (`foliashop reload`), so they show in `/shop` straight away.
 - Legendaries are sold as FoliaShop command products (`give-item: false` + `[console] legendary_additions give %player% <id>`). FoliaShop only uses `name` and `lore` for the menu, so this is what gives buyers the real item with its abilities. Saving a legendary in the creator also updates its shop entries (name, lore, material, enchantments).
 
@@ -351,14 +352,15 @@ Checked automatically:
   - `rod-secret.key` is unchanged after a restart, and the Admin dimension folder is saved.
 
 - **In-game bot test** (CI job `ingame-rod-test`, script `.github/scripts/ingame-rod-test.sh`): a real Folia 26.1.2 server with FoliaShop and this repository's `shops.yml`, and a mineflayer bot that joins as a player and:
-  - casts every rod: the Orbital Strike kills its target and leaves a crater; the Nuke drops 669 TNT whose blasts kill the target and leave a hole on each ring; the other rods do their effect;
+  - casts every rod: the Stab puts a TNT column over the target, kills it and drills to bedrock; the Nuke drops 1169 TNT whose blasts kill the target and leave a hole on the first rings; the other rods do their effect;
   - builds a legendary in the Legendary Creator by clicking the GUI and typing in chat (netherite pickaxe, Vein Miner, Tree Capitator, Auto Smelt, Telekinesis, Efficiency 10), saves it, and the script checks the row in `legendaries.db`;
   - mines a 12-block iron vein with it (all of it breaks and 12 iron ingots land in the inventory) and chops a 10-log trunk (all of it falls, as charcoal); a plain netherite pickaxe breaks only one block;
   - adds that legendary and a diamond block to the Legendary shop through `/shop admin`, searches for it, checks `shops.yml`, and sees it in FoliaShop's own `/shop search`;
+  - adds a Heart of the Sea priced at 2 diamonds (no money) using the Price screen, buys it in FoliaShop's `/shop search` (the 2 diamonds are taken and the heart is given), then tries again without diamonds (refused, nothing given);
   - checks the permission rules (a non-op can use a rod but can't get one).
 
 Not tested automatically:
-- Buying and selling in `/shop`: the test server has no economy plugin. The shop entries use FoliaShop's documented command-product format.
+- Buying with **money** in `/shop`, and the money refund when a buyer lacks the items: the test server has no economy (Vault) plugin.
 - The combat, movement and passive abilities (everything in the table after Magnet).
 - Other plugins' protection of blocks broken by the mining abilities.
 
