@@ -9,10 +9,8 @@ jobs:
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '25'}
       - run: |
-          curl -fsS "https://api.modrinth.com/v2/project/foliashop" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('source_url'),d.get('wiki_url'));print(d.get('body'))"
           URL=$(curl -fsS "https://api.modrinth.com/v2/project/foliashop/version" | python3 -c "import json,sys;v=json.load(sys.stdin)[0];print(v['files'][0]['url'])")
           curl -fsSL -o fs.jar "$URL"; mkdir x; cd x; unzip -q ../fs.jar
-          find . -type f | grep -v '\.class$'
-          for f in $(find . -name '*.yml'); do echo "=== $f"; cat "$f"; done
-          find . -name '*.class' | sed 's/\.class$//' > classes.txt; cat classes.txt
-          for c in $(grep -i -E 'price|provider|currency|cost|econom|shopitem|parse|loader' classes.txt); do echo "=== $c"; javap -p -constants -cp . "${c#./}" | head -80; javap -c -p -constants -cp . "${c#./}" | grep -E 'ldc' | sed 's/.*String //' | sort -u | head -120; done
+          for c in Price ShopItem ShopManager ShopListener FoliaShopPlugin EconomyService; do echo "=== $c"; javap -c -p -constants -cp . me.rakib.foliashop.$c | grep -v -E '^\s+[0-9]+: (aload|astore|iload|istore|dup|pop|iconst|dload|dstore|checkcast|goto|areturn|ireturn|return|nop|new |iinc|arraylength)'; done > dump.txt
+          gzip -9 -c dump.txt | base64 -w0 > dump.b64; wc -c dump.txt dump.b64
+          echo "DUMP_BEGIN"; cat dump.b64; echo; echo "DUMP_END"
