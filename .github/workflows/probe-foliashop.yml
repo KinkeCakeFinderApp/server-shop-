@@ -1,0 +1,18 @@
+name: Probe FoliaShop
+on:
+  push:
+    paths: ['.github/workflows/probe-foliashop.yml']
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '25'}
+      - run: |
+          curl -fsS "https://api.modrinth.com/v2/project/foliashop" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('source_url'),d.get('wiki_url'));print(d.get('body'))"
+          URL=$(curl -fsS "https://api.modrinth.com/v2/project/foliashop/version" | python3 -c "import json,sys;v=json.load(sys.stdin)[0];print(v['files'][0]['url'])")
+          curl -fsSL -o fs.jar "$URL"; mkdir x; cd x; unzip -q ../fs.jar
+          find . -type f | grep -v '\.class$'
+          for f in $(find . -name '*.yml'); do echo "=== $f"; cat "$f"; done
+          find . -name '*.class' | sed 's/\.class$//' > classes.txt; cat classes.txt
+          for c in $(grep -i -E 'price|provider|currency|cost|econom|shopitem|parse|loader' classes.txt); do echo "=== $c"; javap -p -constants -cp . "${c#./}" | head -80; javap -c -p -constants -cp . "${c#./}" | grep -E 'ldc' | sed 's/.*String //' | sort -u | head -120; done
