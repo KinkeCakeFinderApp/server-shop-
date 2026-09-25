@@ -12,6 +12,11 @@ URL=$(curl -fsS https://fill.papermc.io/v3/projects/folia/versions/26.1.2/builds
   | python3 -c "import json,sys;print(json.load(sys.stdin)['downloads']['server:default']['url'])")
 curl -fsS -o folia.jar "$URL"
 cp "$JAR" plugins/
+# The default config, except that the two bots share 127.0.0.1: the same-IP rule would block
+# every kill (it is covered by the unit tests).
+mkdir -p plugins/EloRanks
+unzip -p "$JAR" config.yml | sed 's/block-same-ip: true/block-same-ip: false/' > plugins/EloRanks/config.yml
+grep -q "block-same-ip: false" plugins/EloRanks/config.yml
 # LuckPerms (Bukkit build, which supports Folia) from Modrinth.
 LP_URL=$(curl -fsS 'https://api.modrinth.com/v2/project/luckperms/version?loaders=%5B%22bukkit%22%5D' \
   | python3 -c "
@@ -56,8 +61,9 @@ stop_server() {
   wait $PID || true
   exec 3>&-
 }
-# Prints what the console printed between two markers.
-section() { awk "/\\[Server\\] BEGIN-$2/{f=1;next} /\\[Server\\] END-$2/{f=0} f" "$1"; }
+# Marks the current end of a log; section prints what was logged between two marks.
+mark() { wc -l < "$1"; }
+section() { sed -n "$(( $2 + 1 )),$3p" "$1"; }
 
 RESULT=0
 check() { if eval "$2"; then echo "CHECK PASS $1"; else echo "CHECK FAIL $1"; RESULT=1; fi; }
@@ -83,36 +89,36 @@ set -e
 [ "$BOT" = 0 ] || RESULT=1
 
 sleep 3
-console "say BEGIN-T1"
+T1_FROM=$(mark boot1.log)
 console "lp user EloKiller info"
 console "lp user EloKiller meta info"
 console "lp user EloKiller permission info"
-sleep 5
-console "say END-T1"
+sleep 6
+T1_TO=$(mark boot1.log)
 # Console admin command on an offline player: Tier 1 -> Tier 5.
 console "elo set EloKiller 300"
 sleep 4
-console "say BEGIN-T5"
+T5_FROM=$(mark boot1.log)
 console "lp user EloKiller meta info"
-sleep 5
-console "say END-T5"
-sleep 1
+sleep 6
+T5_TO=$(mark boot1.log)
 stop_server
+echo "===== end of boot1.log ====="; tail -n 25 boot1.log
 
 echo "===== EloRanks / LuckPerms lines (boot 1) ====="
 grep -E "EloRanks|LuckPerms|EloKiller|EloVictim" boot1.log | grep -v "lost connection" | head -80 || true
-echo "===== LuckPerms at Tier 1 ====="; section boot1.log T1
-echo "===== LuckPerms at Tier 5 ====="; section boot1.log T5
+echo "===== LuckPerms at Tier 1 ====="; section boot1.log $T1_FROM $T1_TO
+echo "===== LuckPerms at Tier 5 ====="; section boot1.log $T5_FROM $T5_TO
 
 check "EloRanks enabled" 'grep -q "EloRanks enabled: 6 tiers, claim cooldown 2d 0h 0m" boot1.log'
 check "LuckPerms hooked" 'grep -q "LuckPerms found: tiers are shown with a LuckPerms prefix" boot1.log'
 check "no config problems" '! grep -q "\[EloRanks\] config.yml" boot1.log'
-check "Tier 1 prefix set" 'section boot1.log T1 | grep -q "\[T1\]"'
-check "VIP prefix kept" 'section boot1.log T1 | grep -q "\[VIP\]"'
-check "unrelated permission kept" 'section boot1.log T1 | grep -q "test.unrelated.permission"'
-check "tier meta set" 'section boot1.log T1 | grep -q "eloranks-tier"'
-check "Tier 5 prefix replaced Tier 1 (no stacking)" 'section boot1.log T5 | grep -q "\[T5\]" && ! section boot1.log T5 | grep -q "\[T1\]"'
-check "VIP prefix still kept" 'section boot1.log T5 | grep -q "\[VIP\]"'
+check "Tier 1 prefix set" 'section boot1.log $T1_FROM $T1_TO | grep -q "\[T1\]"'
+check "VIP prefix kept" 'section boot1.log $T1_FROM $T1_TO | grep -q "\[VIP\]"'
+check "unrelated permission kept" 'section boot1.log $T1_FROM $T1_TO | grep -q "test.unrelated.permission"'
+check "tier meta set" 'section boot1.log $T1_FROM $T1_TO | grep -q "eloranks-tier"'
+check "Tier 5 prefix replaced Tier 1 (no stacking)" 'section boot1.log $T5_FROM $T5_TO | grep -q "\[T5\]" && ! section boot1.log $T5_FROM $T5_TO | grep -q "\[T1\]"'
+check "VIP prefix still kept" 'section boot1.log $T5_FROM $T5_TO | grep -q "\[VIP\]"'
 check "combat log detected" 'grep -q "EloVictim disconnected in combat; counted as killed by EloKiller" boot1.log'
 
 # ------------------------------------------------------------------ boot 2: persistence

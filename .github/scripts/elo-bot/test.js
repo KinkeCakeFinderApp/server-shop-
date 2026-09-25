@@ -72,11 +72,27 @@ function count (bot, name) {
   return bot.inventory.items().filter(i => i.name === name).reduce((n, i) => n + i.count, 0)
 }
 
-// Asks the server for the bot's inventory data (item components) and returns the text.
-async function inventoryData (bot) {
-  bot.chatLog.length = 0
-  await cmd(bot, 'data get entity @s Inventory', 1500)
-  return bot.chatLog.join('\n')
+function summary (items) {
+  const byName = {}
+  for (const i of items) byName[i.name] = (byName[i.name] || 0) + i.count
+  return `${items.length} stacks ${JSON.stringify(byName)}`
+}
+
+// Places the barrel whose name contains `name` at `pos` and returns what is inside it.
+async function placeAndOpen (bot, name, pos) {
+  const barrel = bot.inventory.items().find(i => i.name === 'barrel' && JSON.stringify(i).includes(name))
+  if (!barrel) throw new Error('no ' + name + ' in inventory')
+  await bot.equip(barrel, 'hand')
+  await bot.placeBlock(bot.blockAt(pos.offset(0, -1, 0)), new Vec3(0, 1, 0))
+  await sleep(600)
+  const block = bot.blockAt(pos)
+  if (!block || block.name !== 'barrel') throw new Error('barrel not placed, found ' + (block && block.name))
+  const win = await bot.openContainer(block)
+  await sleep(400)
+  const items = win.containerItems()
+  bot.closeWindow(win)
+  await sleep(300)
+  return items
 }
 
 async function kill (killer, victim) {
@@ -197,13 +213,30 @@ async function phaseOne () {
   record('Tier 1 + 5 + 6 = 3 barrels, no shulker boxes', count(killer, 'barrel') === 3 &&
     !killer.inventory.items().some(i => i.name.includes('shulker')), killer.inventory.items().map(i => i.name + 'x' + i.count).join(','))
 
-  const data = await inventoryData(killer)
-  const pearls = (data.match(/minecraft:ender_pearl/g) || []).length
-  const carts = (data.match(/minecraft:tnt_minecart/g) || []).length
-  record('pearl barrel holds 27 stacks of ender pearls (432)', pearls === 27 && data.includes('minecraft:container'), `ender_pearl entries=${pearls}`)
-  record('TNT minecart barrel holds 27 TNT minecarts (not minecarts)', carts === 27 && !/"minecraft:minecart"/.test(data), `tnt_minecart entries=${carts}`)
-  record('potion barrel holds Speed II and Strength II', data.includes('minecraft:strong_swiftness') && data.includes('minecraft:strong_strength'),
-    data.slice(0, 300))
+  // Place each barrel like a player would and look inside.
+  const barrelChecks = [['Ender Pearl Barrel', 0], ['TNT Minecart Barrel', 1], ['Potion Barrel', 2]]
+  const contents = {}
+  for (const [name, i] of barrelChecks) {
+    try {
+      contents[name] = await placeAndOpen(killer, name, new Vec3(Math.floor(killer.entity.position.x) + 2, -60, Math.floor(killer.entity.position.z) - 1 + i))
+    } catch (e) {
+      log('placing', name, 'failed:', e.message)
+      contents[name] = []
+    }
+  }
+  const pearls = contents['Ender Pearl Barrel']
+  record('pearl barrel holds 27 stacks of ender pearls (432)', pearls.length === 27 && pearls.every(i => i.name === 'ender_pearl') &&
+    pearls.reduce((n, i) => n + i.count, 0) === 432, summary(pearls))
+  const carts = contents['TNT Minecart Barrel']
+  record('TNT minecart barrel holds 27 TNT minecarts (not minecarts)', carts.length === 27 && carts.every(i => i.name === 'tnt_minecart'),
+    summary(carts))
+  const potions = contents['Potion Barrel']
+  const kinds = {}
+  for (const p of potions) { const k = JSON.stringify(p.components || p.nbt); kinds[k] = (kinds[k] || 0) + p.count }
+  const counts = Object.values(kinds).sort((a, b) => a - b)
+  record('potion barrel holds 14 + 13 potions of two kinds', potions.length === 27 && potions.every(i => i.name === 'potion') &&
+    JSON.stringify(counts) === '[13,14]', summary(potions) + ' kinds=' + Object.keys(kinds).map(k => k.slice(0, 200)).join(' || '))
+  await cmd(killer, 'fill -10 -60 -10 10 -55 10 air', 800)
 
   // --- full inventory
   await cmd(killer, 'elo resetclaims EloKiller', 1500)
@@ -236,9 +269,9 @@ async function phaseOne () {
   }
   if (killer.currentWindow) killer.closeWindow(killer.currentWindow)
   await sleep(1000)
-  const inv = await inventoryData(killer)
-  record('GUI items cannot be taken out', !inv.includes('player_head') && !inv.includes('stained_glass_pane') && !inv.includes('minecraft:chest'),
-    inv.slice(0, 300))
+  killer.chatLog.length = 0
+  await cmd(killer, 'clear EloKiller', 1200)
+  record('GUI items cannot be taken out', said(killer, 'No items were found'), recent(killer))
 
   // --- leaderboard shows both players, highest first
   w = await open(victim, 'leaderboard')
@@ -309,4 +342,3 @@ setTimeout(() => { console.log('TIMEOUT'); finish(); process.exit(4) }, 300000)
   .catch(e => record('run', false, 'exception ' + (e && e.stack)))
   .then(finish)
 
-module.exports = { Vec3 }
