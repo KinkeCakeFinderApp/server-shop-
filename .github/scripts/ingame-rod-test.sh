@@ -107,5 +107,5 @@ assert heart["buy-price"] == {"provider": "xp_points", "amount": 0.0}
 assert len(heart["legendaryadditions"]["cost"]) == 1
 assert "&e - 2x Diamond" in heart["lore"]
 PY
-grep -iE "FoliaShop|foliashop" server.log | head -20
+grep -iE "FoliaShop|foliashop" server.log | head -20 || true
 exit $BOT
