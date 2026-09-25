@@ -96,6 +96,10 @@ async function run () {
   await sleep(6000) // the server script ops us when it sees the join
   await cmd('gamemode survival', 500)
   await cmd('time set day', 200)
+  // No natural mobs: a slime from a slime chunk once killed the bot while it waited far away.
+  // (The gamerule was renamed in 1.21.11; one of the two names works, the other is ignored.)
+  await cmd('gamerule spawn_mobs false', 300)
+  await cmd('gamerule doMobSpawning false', 300)
 
   // Stab: explosions straight down the column from the build limit (y=319) to bedrock at the target.
   // Like the Law Nuke they are created directly, so the stab goes off the moment the rod is used.
