@@ -40,7 +40,7 @@ public final class RodEffects {
          return true;
       });
       this.effects.put(RodKind.ARROW_ROD, (caster, target, s) -> {
-         ArrowRainEffect.launch(target.center(), s.arrowRod(), caster.getUniqueId());
+         ArrowRainEffect.launch(plugin, caster, target.center(), s.arrowRod());
          return true;
       });
       for (RodKind kind : RodKind.values()) {

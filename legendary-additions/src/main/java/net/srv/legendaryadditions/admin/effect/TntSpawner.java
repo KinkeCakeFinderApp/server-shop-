@@ -62,10 +62,17 @@ public final class TntSpawner implements Listener {
     */
    public static void spawn(Plugin plugin, Location at, Vector velocity, boolean gravity, int fuse, float power,
                             UUID owner, boolean protectOwner, boolean noBlockDamage, boolean primed) {
+      spawn(plugin, at, velocity, gravity, fuse, power, false, owner, protectOwner, noBlockDamage, primed);
+   }
+
+   /** @param fire true = the explosion sets fires */
+   public static void spawn(Plugin plugin, Location at, Vector velocity, boolean gravity, int fuse, float power, boolean fire,
+                            UUID owner, boolean protectOwner, boolean noBlockDamage, boolean primed) {
       if (primed) {
          at.getWorld().spawn(at, TNTPrimed.class, tnt -> {
             tnt.setFuseTicks(fuse);
             tnt.setYield(power);
+            tnt.setIsIncendiary(fire);
             tnt.setGravity(gravity);
             tnt.setVelocity(velocity);
             ExplosionGuard.tag(tnt, owner, protectOwner, noBlockDamage);
@@ -79,6 +86,9 @@ public final class TntSpawner implements Listener {
          fb.setGravity(gravity);
          fb.setVelocity(velocity);
          fb.getPersistentDataContainer().set(RodKeys.FAKE_TNT, PersistentDataType.FLOAT, power);
+         if (fire) {
+            fb.getPersistentDataContainer().set(RodKeys.FAKE_TNT_FIRE, PersistentDataType.BYTE, (byte) 1);
+         }
          ExplosionGuard.tag(fb, owner, protectOwner, noBlockDamage);
       });
       // The entity scheduler follows the block into whichever region it flies to.
@@ -102,9 +112,10 @@ public final class TntSpawner implements Listener {
       Byte noBlocks = block.getPersistentDataContainer().get(RodKeys.NO_BLOCK_DAMAGE, PersistentDataType.BYTE);
       Byte protect = block.getPersistentDataContainer().get(RodKeys.PROTECT_OWNER, PersistentDataType.BYTE);
       String owner = block.getPersistentDataContainer().get(RodKeys.OWNER, PersistentDataType.STRING);
+      boolean fire = block.getPersistentDataContainer().has(RodKeys.FAKE_TNT_FIRE);
       Location at = block.getLocation();
       block.remove();
-      ExplosionGuard.explode(at, power == null ? 4F : power, false, noBlocks == null || noBlocks != 1,
+      ExplosionGuard.explode(at, power == null ? 4F : power, fire, noBlocks == null || noBlocks != 1,
             protect != null && protect == 1 && owner != null ? UUID.fromString(owner) : null);
    }
 }

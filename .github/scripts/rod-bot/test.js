@@ -97,22 +97,18 @@ async function run () {
   await cmd('gamemode survival', 500)
   await cmd('time set day', 200)
 
-  // Stab: a column of primed TNT from the build limit (y=319) down to bedrock at the target.
-  // The top goes off after 1 s and the blast runs down the column, so it must drill to bedrock.
+  // Stab: explosions straight down the column from the build limit (y=319) to bedrock at the target.
+  // Like the Law Nuke they are created directly, so the stab goes off the moment the rod is used.
   await shotRod('stabshot', async before => {
     const z = await aimAtZombie()
     if (!z) { record('stabshot', false, 'test husk did not spawn'); return }
     await cast()
-    await sleep(700)
-    // Primed TNT, or falling TNT blocks when there is more TNT than spigot.yml's max-tnt-per-tick (100 here).
-    const column = Object.values(bot.entities).filter(e => (e.name === 'tnt' || e.name === 'falling_block') &&
-      Math.abs(e.position.x - 10.5) < 0.6 && Math.abs(e.position.z - 0.5) < 0.6)
-    record('stabshot TNT column', column.length >= 5,
-      `primed TNT in the column near the bot: ${column.length}, ys=${column.map(e => Math.round(e.position.y)).sort((p, q) => p - q).slice(0, 12)}`)
-    record('stabshot report', chat.some(m => /Stab launched: \d+ TNT from y=319 down to bedrock \(y=-64\)/.test(m)), JSON.stringify(chat))
-    await sleep(4000)
+    await sleep(1000)
     const dead = gone.has(z.id)
-    record('stabshot', dead, `husk ${dead ? 'killed' : 'still alive'}`)
+    record('stabshot is instant', dead, `husk ${dead ? 'killed within 1 s' : 'still alive after 1 s'}`)
+    const tnt = spawned.filter(n => n === 'tnt' || n === 'falling_block').length
+    record('stabshot spawns no TNT entities', tnt === 0, `TNT entities seen=${tnt}`)
+    record('stabshot report', chat.some(m => /Stab: \d+ explosions from y=319 down to bedrock \(y=-64\)/.test(m)), JSON.stringify(chat))
     record('stabshot reusable', rodCount() === before, `rods ${before}->${rodCount()}`)
     const shaft = [-61, -62, -63, -64].map(y => {
       const b = bot.blockAt(new Vec3(10, y, 0))
@@ -120,6 +116,46 @@ async function run () {
     })
     record('stabshot drills to bedrock', shaft.slice(0, 3).every(h => h.block === 'air') && shaft[3].block === 'bedrock',
       JSON.stringify(shaft))
+  })
+
+  // Law Nuke: 140 TNT summoned 70 blocks above the target like the Nuke, spread over 45 blocks.
+  await reset()
+  await cmd('lawnukeshot', 1200)
+  if (!(await equipRod())) {
+    record('lawnukeshot', false, 'no fishing rod was given')
+  } else {
+    await cmd('tp @s -59.5 -60 0.5 -90 0', 2500)
+    const before = rodCount()
+    const z = await aimAtZombie()
+    await cast()
+    await sleep(1500)
+    const tnt = spawned.filter(n => n === 'tnt' || n === 'falling_block').length
+    record('lawnukeshot summons TNT in the sky', tnt >= 1, `TNT seen=${tnt}`)
+    record('lawnukeshot report', chat.some(m => m.includes('Law Nuke launched: 140 TNT over 45 blocks')), JSON.stringify(chat))
+    await sleep(5000)
+    const dead = z && gone.has(z.id)
+    record('lawnukeshot', !!dead, `husk at the centre ${dead ? 'killed' : 'still alive'}`)
+    record('lawnukeshot reusable', rodCount() === before, `rods ${before}->${rodCount()}`)
+    await cmd('tp @s 0.5 -60 0.5 -90 0', 2500)
+  }
+
+  // Arrow rod: a sphere of arrows around the target in 3 waves, owned by the player who used it.
+  // The husk is named so the server logs its death message ("ArrowTarget was shot by RodTester").
+  await shotRod('arrowrodshot', async before => {
+    await cmd('summon husk 10.5 -60 0.5 {NoAI:1b,PersistenceRequired:1b,Health:20f,CustomName:"ArrowTarget"}', 1200)
+    const z = nearest('husk', new Vec3(10.5, -60, 0.5), 3)[0]
+    if (!z) { record('arrowrodshot', false, 'test husk did not spawn'); return }
+    await bot.lookAt(new Vec3(10.5, -59, 0.5), true)
+    await sleep(400)
+    await cast()
+    await sleep(2500)
+    const arrows = spawned.filter(n => n === 'arrow')
+    const above = Object.values(bot.entities).filter(e => e.name === 'arrow').length
+    record('arrowrodshot fires a sphere of arrows', arrows.length >= 300, `arrows seen=${arrows.length}, still flying/stuck=${above}`)
+    const dead = gone.has(z.id)
+    record('arrowrodshot', dead, `husk ${dead ? 'killed' : 'still alive'}`)
+    record('arrowrodshot does not hurt the caster', bot.health > 15, `health=${bot.health}`)
+    record('arrowrodshot reusable', rodCount() === before, `rods ${before}->${rodCount()}`)
   })
 
   // Nuke: Unstable SMP rings - 1169 TNT dropped 70 blocks above the target spread into 9 rings

@@ -6,7 +6,7 @@
 # "warning-time-ticks" is an optional delay before impact (0 by default).
 
 # Do not edit: used to update older config files automatically.
-config-version: 4
+config-version: 5
 
 # Extra sounds and particles made by the rods (warning beams, markers, charge-up sounds,
 # smoke, impact sounds, teleport sparkles, the break sound of used-up rods...).
@@ -31,21 +31,21 @@ teleport-rod:
 
 # /stab, /stabshot
 orbital-strike:
-  # tnt    = the Unstable SMP / Orbital Strike Cannon stab: a column of primed TNT at the target
-  #          from the build limit all the way down to bedrock. The top goes off first and the
-  #          blast runs down the column, drilling a shaft to bedrock.
+  # tnt    = the stab: a column of TNT-strength explosions at the target from the build limit
+  #          all the way down to bedrock, drilling a shaft to bedrock. Like the Law Nuke the
+  #          explosions are created directly (no TNT entities), so it goes off instantly.
   # crater = the old stab: instant damage in "radius" and a silent crater.
   style: tnt
-  # Blocks between two TNT in the column (1 = a TNT in every block, 384 TNT in the Overworld).
+  # Blocks between two explosions in the column (1 = one in every block).
   tnt-spacing: 2
-  # TNT per level of the column. More makes the shaft wider.
+  # Explosions per level of the column. More makes the shaft wider.
   tnt-per-layer: 1
-  # Explosion power of each TNT (vanilla TNT is 4).
+  # Power of each explosion (vanilla TNT is 4).
   tnt-power: 4.0
-  # Ticks before the top TNT explodes (20 = 1 second).
-  fuse-ticks: 20
+  # Ticks before the column goes off (0 = instantly).
+  fuse-ticks: 0
   # How many blocks the blast travels down each tick. 0 = the whole column goes off at once.
-  blocks-per-tick: 16
+  blocks-per-tick: 0
   destroy-blocks: true
   damage-owner: false
   # Crater settings (style: crater only).
@@ -84,15 +84,20 @@ nuke:
   crater-radius: 9.0
   create-fire: false
 
-# /lawnuke, /lawnukeshot - carpet of TNT-strength blasts over a wide area.
+# /lawnuke, /lawnukeshot - TNT summoned in the sky above the target (like the Nuke) that falls
+# spread evenly over a wide radius and explodes on the ground.
 law-nuke:
   radius: 45.0
+  # Number of TNT.
   explosions: 140
+  # Explosion power of each TNT (vanilla TNT is 4).
   explosion-power: 4.0
-  # Fuse before the blasts (0 = instant).
+  # Warning before the TNT is summoned (0 = at once).
   warning-time-ticks: 0
-  # Detonations ripple outward over this many ticks.
-  detonation-ticks: 30
+  # Blocks above the target where the TNT appears (capped at the world's build limit).
+  spawn-height: 70.0
+  # Ticks until the TNT explodes. The TNT speed is worked out from this so it lands spread over the radius.
+  fuse-ticks: 80
   destroy-blocks: true
   create-fire: false
   damage-owner: false
@@ -118,14 +123,20 @@ wolf-rod:
   # 0 = wolves stay forever. Otherwise they vanish after this many seconds.
   lifetime-seconds: 0
 
-# /arrowrod, /arrowrodshot - a grid of arrows fired straight down.
+# /arrowrod, /arrowrodshot - a sphere of arrows around the target, all flying at its centre,
+# in several waves. The player who used the rod owns every arrow (hits and kills are theirs).
+# Parts of the sphere inside solid blocks (under the ground) are skipped.
 arrow-rod:
-  grid-size: 5
-  layers: 2
-  spawn-height: 86.0
-  speed: 10.0
+  sphere-radius: 12.0
+  # Arrows per wave, spread evenly over the whole sphere.
+  arrows-per-wave: 400
+  waves: 3
+  wave-interval-ticks: 10
+  # Arrow speed in blocks per tick.
+  speed: 3.0
+  # Damage of the first wave, and of every later wave.
   damage: 70.0
-  second-layer-damage: 80.0
+  later-wave-damage: 80.0
   damage-owner: false
 
 admin-dimension:

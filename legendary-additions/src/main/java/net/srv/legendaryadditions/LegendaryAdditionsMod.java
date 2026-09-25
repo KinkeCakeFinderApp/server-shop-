@@ -178,7 +178,11 @@ public class LegendaryAdditionsMod extends JavaPlugin {
    private void migrateConfig() {
       var config = this.getConfig();
       int version = config.getInt("config-version", 1);
-      if (version >= 4) {
+      if (version >= 5) {
+         return;
+      }
+      if (version == 4) {
+         this.migrateToV5(config);
          return;
       }
       if (version < 2) {
@@ -206,9 +210,31 @@ public class LegendaryAdditionsMod extends JavaPlugin {
       config.set("nuke.fuse-ticks", 80);
       config.set("nuke.misalign", 0.0);
       config.set("nuke.tnt-power", 4.0);
-      config.set("config-version", 4);
+      this.getLogger().info("Updated config.yml: the Nuke drops the Unstable SMP TNT rings (nuke.style: rings).");
+      this.migrateToV5(config);
+   }
+
+   /** 5: the stab explodes instantly, the Law Nuke drops TNT from the sky, the arrow rod fires a sphere. */
+   private void migrateToV5(org.bukkit.configuration.file.FileConfiguration config) {
+      config.set("orbital-strike.style", "tnt");
+      config.set("orbital-strike.fuse-ticks", 0);
+      config.set("orbital-strike.blocks-per-tick", 0);
+      config.set("law-nuke.spawn-height", 70.0);
+      config.set("law-nuke.fuse-ticks", 80);
+      config.set("law-nuke.detonation-ticks", null);
+      config.set("arrow-rod.grid-size", null);
+      config.set("arrow-rod.layers", null);
+      config.set("arrow-rod.spawn-height", null);
+      config.set("arrow-rod.second-layer-damage", null);
+      config.set("arrow-rod.sphere-radius", 12.0);
+      config.set("arrow-rod.arrows-per-wave", 400);
+      config.set("arrow-rod.waves", 3);
+      config.set("arrow-rod.wave-interval-ticks", 10);
+      config.set("arrow-rod.speed", 3.0);
+      config.set("arrow-rod.later-wave-damage", 80.0);
+      config.set("config-version", 5);
       this.saveConfig();
-      this.getLogger().info("Updated config.yml: the Stab now drops a TNT column to bedrock (orbital-strike.style: tnt)"
-            + " and the Nuke drops the Unstable SMP TNT rings (nuke.style: rings).");
+      this.getLogger().info("Updated config.yml: the Stab explodes instantly (orbital-strike.fuse-ticks: 0), the Law Nuke"
+            + " drops TNT from the sky (law-nuke.spawn-height), the arrow rod fires a sphere of arrows in 3 waves.");
    }
 }

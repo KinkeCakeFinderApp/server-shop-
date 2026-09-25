@@ -76,7 +76,11 @@ if grep -nE "Exception|Error" server.log | grep -iE "legendaryadditions|net\.srv
 fi
 grep -q "Updated config.yml" server.log || { echo "old config was not upgraded"; BOT=1; }
 grep -q "nuke.style: rings" server.log || { echo "old config did not get the nuke rings"; BOT=1; }
-grep -q "orbital-strike.style: tnt" server.log || { echo "old config did not get the TNT stab"; BOT=1; }
+grep -q "orbital-strike.fuse-ticks: 0" server.log || { echo "old config did not get the instant stab"; BOT=1; }
+grep -q "law-nuke.spawn-height" server.log || { echo "old config did not get the sky Law Nuke"; BOT=1; }
+grep -q "sphere of arrows" server.log || { echo "old config did not get the arrow sphere"; BOT=1; }
+grep -qE "ArrowTarget.*was shot by RodTester" server.log || { echo "the arrow rod's arrows are not owned by the player who used it"; BOT=1; }
+grep -E "ArrowTarget" server.log || true
 grep -i "max-tnt-per-tick" server.log || true
 echo "===== legendaries.db ====="
 python3 - <<'PY' || BOT=1

@@ -1,7 +1,5 @@
 package net.srv.legendaryadditions.admin.effect;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import net.srv.legendaryadditions.admin.AdminSettings;
@@ -10,18 +8,15 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TNTPrimed;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.util.Vector;
 
 /**
- * The Unstable SMP / Orbital Strike Cannon stab: a column of primed TNT at the target from the
- * world's build limit down to bedrock. The top TNT goes off first and the blast runs down the
- * column, drilling a shaft to bedrock.
+ * The stab: a column of TNT-strength explosions at the target from the world's build limit down
+ * to bedrock, drilling a shaft to bedrock.
  *
- * <p>The TNT floats (no gravity) and is held in place every tick, so neither falling nor the
- * knockback of the explosions above can move it out of the column. The whole column is in one
- * chunk, so one region task owns every TNT.</p>
+ * <p>Like the Law Nuke it creates the explosions directly instead of spawning TNT, so there is no
+ * fuse and nothing can be pushed out of the column: by default the whole column goes off the
+ * moment the rod is used. The column is in one chunk, so one region task owns every explosion.</p>
  */
 public final class StabColumnEffect {
    private StabColumnEffect() {
@@ -34,61 +29,40 @@ public final class StabColumnEffect {
          if (!EffectGuards.worldStillLoaded(world)) {
             return;
          }
-         double x = center.getBlockX() + 0.5;
-         double z = center.getBlockZ() + 0.5;
          int top = world.getMaxHeight() - 1;
          int bottom = world.getMinHeight();
-         ThreadLocalRandom random = ThreadLocalRandom.current();
-         List<TNTPrimed> column = new ArrayList<>();
-         int layers = (top - bottom) / settings.spacing() + 1;
-         boolean primed = TntSpawner.primedFits(layers * settings.tntPerLayer());
-         int spawned = 0;
-         int lastFuse = 0;
+         UUID protectedOwner = settings.damageOwner() ? null : owner;
+         int explosions = 0;
          for (int y = top; y >= bottom; y -= settings.spacing()) {
-            int fuse = settings.fuseTicks() + (settings.blocksPerTick() == 0 ? 0 : (top - y) / settings.blocksPerTick());
-            lastFuse = Math.max(lastFuse, fuse);
+            long delay = settings.fuseTicks() + (settings.blocksPerTick() == 0 ? 0 : (top - y) / settings.blocksPerTick());
             for (int i = 0; i < settings.tntPerLayer(); i++) {
-               // Extra TNT in a layer sits slightly off-centre so the shaft gets wider, not deeper.
-               double dx = i == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.8;
-               double dz = i == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.8;
-               Location at = new Location(world, x + dx, y, z + dz);
-               spawned++;
-               if (!primed) {
-                  // Over spigot.yml's max-tnt-per-tick: floating TNT blocks that are not limited.
-                  TntSpawner.spawn(plugin, at, new Vector(), false, fuse, settings.power(), owner,
-                        !settings.damageOwner(), !settings.destroyBlocks(), false);
-                  continue;
+               explosions++;
+               Location at = layerPoint(center, y, i);
+               if (delay <= 0) {
+                  ExplosionGuard.explode(at, settings.power(), false, settings.destroyBlocks(), protectedOwner);
+               } else {
+                  Bukkit.getRegionScheduler().runDelayed(plugin, at, t -> {
+                     if (EffectGuards.worldStillLoaded(world)) {
+                        ExplosionGuard.explode(at, settings.power(), false, settings.destroyBlocks(), protectedOwner);
+                     }
+                  }, delay);
                }
-               column.add(world.spawn(at, TNTPrimed.class, tnt -> {
-                  tnt.setFuseTicks(fuse);
-                  tnt.setYield(settings.power());
-                  tnt.setGravity(false);
-                  tnt.setVelocity(new Vector());
-                  ExplosionGuard.tag(tnt, owner, !settings.damageOwner(), !settings.destroyBlocks());
-               }));
             }
          }
-
-         int endTick = lastFuse + 2;
-         int[] tick = {0};
-         Bukkit.getRegionScheduler().runAtFixedRate(plugin, center, task -> {
-            column.removeIf(tnt -> !tnt.isValid());
-            if (column.isEmpty() || tick[0]++ > endTick) {
-               task.cancel();
-               return;
-            }
-            for (TNTPrimed tnt : column) {
-               if (Bukkit.isOwnedByCurrentRegion(tnt)) {
-                  tnt.setVelocity(new Vector());
-               }
-            }
-         }, 1L, 1L);
 
          Player caster = Bukkit.getPlayer(owner);
          if (caster != null) {
-            String report = "Stab launched: " + spawned + " TNT from y=" + top + " down to bedrock (y=" + bottom + ").";
+            String report = "Stab: " + explosions + " explosions from y=" + top + " down to bedrock (y=" + bottom + ").";
             caster.getScheduler().run(plugin, t -> Messages.info(caster, report), null);
          }
       });
+   }
+
+   /** Extra explosions in a layer sit slightly off-centre so the shaft gets wider, not deeper. */
+   private static Location layerPoint(Location center, int y, int index) {
+      ThreadLocalRandom random = ThreadLocalRandom.current();
+      double dx = index == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.8;
+      double dz = index == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.8;
+      return new Location(center.getWorld(), center.getBlockX() + 0.5 + dx, y, center.getBlockZ() + 0.5 + dz);
    }
 }

@@ -46,8 +46,9 @@ public record AdminSettings(
 
    public record Teleport(double maxDistance, int safeSearchRadius, boolean allowLava) {}
 
-   public record LawNuke(double radius, int explosions, float explosionPower, int warningTicks, int detonationTicks,
-                         boolean destroyBlocks, boolean createFire, boolean damageOwner) {}
+   /** TNT summoned in the sky above the target, spread evenly over {@code radius} as it falls. */
+   public record LawNuke(double radius, int explosions, float explosionPower, int warningTicks, double spawnHeight,
+                         int fuseTicks, boolean destroyBlocks, boolean createFire, boolean damageOwner) {}
 
    public record WitherNuke(int skullCount, double spawnHeight, double maxHorizontalSpeed, boolean charged,
                             boolean destroyBlocks, boolean damageOwner, int skullsPerTick) {}
@@ -59,8 +60,9 @@ public record AdminSettings(
                              int maxLength, boolean allowVoteRemoval, String sorting, int inputTimeoutSeconds,
                              int maxPendingPerPlayer, boolean allowDelete, String dateFormat) {}
 
-   public record ArrowRod(int gridSize, int layers, double spawnHeight, double speed, double damage,
-                           double secondLayerDamage, boolean damageOwner) {}
+   /** A sphere of arrows around the target, all flying at its centre, in {@code waves} waves. */
+   public record ArrowRod(double sphereRadius, int arrowsPerWave, int waves, int waveIntervalTicks, double speed,
+                          double damage, double laterWaveDamage, boolean damageOwner) {}
 
    public static AdminSettings load(FileConfiguration config) {
       List<String> disabled = config.getStringList("rod-targeting.disabled-worlds");
@@ -91,7 +93,8 @@ public record AdminSettings(
             clamp(config.getInt("law-nuke.explosions", 140), 1, 1000),
             (float) clamp(config.getDouble("law-nuke.explosion-power", 4.0), 0.5, 20.0),
             clamp(config.getInt("law-nuke.warning-time-ticks", 0), 0, 1200),
-            clamp(config.getInt("law-nuke.detonation-ticks", 30), 1, 400),
+            positive(config.getDouble("law-nuke.spawn-height", 70.0), 70.0),
+            clamp(config.getInt("law-nuke.fuse-ticks", 80), 1, 400),
             config.getBoolean("law-nuke.destroy-blocks", true),
             config.getBoolean("law-nuke.create-fire", false),
             config.getBoolean("law-nuke.damage-owner", false));
@@ -115,12 +118,13 @@ public record AdminSettings(
             Math.max(0, config.getInt("wolf-rod.lifetime-seconds", 0)));
 
       ArrowRod arrowRod = new ArrowRod(
-            clamp(config.getInt("arrow-rod.grid-size", 5), 1, 15),
-            clamp(config.getInt("arrow-rod.layers", 2), 1, 5),
-            positive(config.getDouble("arrow-rod.spawn-height", 86.0), 86.0),
-            positive(config.getDouble("arrow-rod.speed", 10.0), 10.0),
+            clamp(config.getDouble("arrow-rod.sphere-radius", 12.0), 2.0, 48.0),
+            clamp(config.getInt("arrow-rod.arrows-per-wave", 400), 1, 2000),
+            clamp(config.getInt("arrow-rod.waves", 3), 1, 20),
+            clamp(config.getInt("arrow-rod.wave-interval-ticks", 10), 1, 200),
+            clamp(config.getDouble("arrow-rod.speed", 3.0), 0.1, 10.0),
             Math.max(0.0, config.getDouble("arrow-rod.damage", 70.0)),
-            Math.max(0.0, config.getDouble("arrow-rod.second-layer-damage", 80.0)),
+            Math.max(0.0, config.getDouble("arrow-rod.later-wave-damage", 80.0)),
             config.getBoolean("arrow-rod.damage-owner", false));
 
       String worldKey = config.getString("admin-dimension.world", "adminplugin:admin");
