@@ -269,9 +269,19 @@ async function phaseOne () {
   }
   if (killer.currentWindow) killer.closeWindow(killer.currentWindow)
   await sleep(1000)
+  // Clearing one item type reports "No items were found" when the player has none of it.
+  const leaked = []
+  for (const item of ['player_head', 'gray_stained_glass_pane', 'chest', 'gold_ingot', 'barrier']) {
+    killer.chatLog.length = 0
+    await cmd(killer, `clear EloKiller ${item}`, 900)
+    if (!said(killer, 'No items were found')) leaked.push(item + ': ' + recent(killer))
+  }
+  record('GUI items cannot be taken out', leaked.length === 0, leaked.length ? leaked.join(' ; ') : 'none of the GUI items reached the inventory')
+  // Control: the same check does see an item that is really there.
+  await cmd(killer, 'give EloKiller player_head 1', 800)
   killer.chatLog.length = 0
-  await cmd(killer, 'clear EloKiller', 1200)
-  record('GUI items cannot be taken out', said(killer, 'No items were found'), recent(killer))
+  await cmd(killer, 'clear EloKiller player_head', 900)
+  record('control: /clear of a present item is noticed', !said(killer, 'No items were found'), recent(killer))
 
   // --- leaderboard shows both players, highest first
   w = await open(victim, 'leaderboard')
