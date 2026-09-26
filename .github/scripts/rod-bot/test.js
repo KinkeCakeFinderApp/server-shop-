@@ -458,6 +458,49 @@ async function shopAdmin () {
     record('item price refused without the items', count('heart_of_the_sea') === 1 && chat.some(m => m.includes('You also need 2x Diamond')),
       `${bought} hearts=${count('heart_of_the_sea')} chat=${JSON.stringify(chat)}`)
 
+    // "Add Any Item": an item price typed in chat, for items the admin does not have, above one stack.
+    await cmd('clear @s emerald', 600)
+    opening = nextWindow()
+    bot.chat('/shop admin')
+    w = await opening
+    await sleep(400)
+    w = await click(findSlot(w, 'ID: legendary'))
+    w = await click(49)
+    w = await click(14, 0, 0, false)
+    await sleep(500)
+    w = await answer('nautilus_shell')
+    const shell = findSlot(w, 'nautilus_shell')
+    w = await click(shell < 0 ? 0 : shell, 0, 0, false)
+    await sleep(500)
+    w = await answer('0 0 1')
+    w = await click(53, 0, 0, false)
+    await sleep(500)
+    chat.length = 0
+    w = await answer('emerald 150')
+    record('price screen adds any item by name', findSlot(w, 'Costs 150x') >= 0 && chat.some(m => m.includes('Added 150x Emerald')),
+      `${title(w)} chat=${JSON.stringify(chat)}`)
+    chat.length = 0
+    w = await click(49)
+    await sleep(800)
+    record('shop admin adds typed item price', chat.some(m => m.includes('Added nautilus_shell')), JSON.stringify(chat))
+    bot.closeWindow(bot.currentWindow || w)
+    await sleep(1500)
+    await cmd('give @s emerald 160', 800)
+    {
+      const open = nextWindow()
+      bot.chat('/shop search nautilus')
+      const sw = await open
+      await sleep(500)
+      const slot = findSlot(sw, 'Also costs')
+      chat.length = 0
+      if (slot >= 0) await click(slot, 0, 0, false)
+      await sleep(1500)
+      if (bot.currentWindow) bot.closeWindow(bot.currentWindow)
+      await sleep(300)
+      record('buy with a 150-item price', slot >= 0 && count('nautilus_shell') === 1 && count('emerald') === 10,
+        `slot=${slot} shells=${count('nautilus_shell')} emeralds=${count('emerald')} chat=${JSON.stringify(chat)}`)
+    }
+
     // Search across every shop category.
     opening = nextWindow()
     bot.chat('/shop admin')

@@ -35,7 +35,7 @@ import org.bukkit.plugin.Plugin;
  * and add new ones - custom legendaries from the Legendary Creator, the built-in legendaries, any
  * vanilla item (searched by name) or the item in your hand. A price is money, items, or both:
  * after typing the money price, the Price screen lets the admin click items in their inventory to
- * add them to the price.
+ * add them to the price, or type any item name and amount ("Add Any Item").
  */
 public final class ShopAdminGui {
    public static final String PERMISSION = "legendaryadditions.shopadmin";
@@ -179,7 +179,7 @@ public final class ShopAdminGui {
       if (entry.legendaryId() != null) {
          lore.add(Items.text("Gives legendary: " + entry.legendaryId(), NamedTextColor.LIGHT_PURPLE));
       }
-      lore.add(Items.text("Left click: change prices", NamedTextColor.GREEN));
+      lore.add(Items.text("Left click: change price (money and/or items)", NamedTextColor.GREEN));
       lore.add(Items.text("Shift + right click: remove", NamedTextColor.RED));
       meta.lore(lore);
       icon.setItemMeta(meta);
@@ -341,12 +341,7 @@ public final class ShopAdminGui {
 
    private void openVanilla(Player player, String catId, String query, int page) {
       String q = query.toLowerCase(Locale.ROOT).trim().replace(' ', '_');
-      // Skip legacy materials by name first: calling isItem()/getKey() on them throws.
-      List<Material> hits = Arrays.stream(Material.values())
-            .filter(m -> !m.name().startsWith("LEGACY_"))
-            .filter(m -> m.isItem() && !m.isAir())
-            .filter(m -> m.getKey().getKey().contains(q))
-            .toList();
+      List<Material> hits = itemMaterials().stream().filter(m -> m.getKey().getKey().contains(q)).toList();
       int pages = Math.max(1, (hits.size() + 44) / 45);
       int current = Math.max(0, Math.min(page, pages - 1));
       Menu menu = new Menu(player.getUniqueId(), 6, Items.text("Items matching '" + query + "' (" + hits.size() + ")", NamedTextColor.DARK_GREEN), ACCESS);
@@ -499,7 +494,7 @@ public final class ShopAdminGui {
       }
       if (cost.isEmpty()) {
          menu.set(13, Items.icon(Material.HOPPER, "No item price yet", NamedTextColor.GRAY, "Click items in your inventory below", "to add them to the price.",
-               "Left click = whole stack, right click = one.", "Leave it empty for a money-only price."));
+               "Left click = whole stack, right click = one.", "Or use Add Any Item (bottom right)", "for items you don't have.", "Leave it empty for a money-only price."));
       }
       for (int i = 36; i < 54; i++) {
          menu.set(i, Items.filler());
@@ -522,23 +517,115 @@ public final class ShopAdminGui {
          cost.clear();
          this.openCostEditor(p, buy, sell, amount, cost, then);
       });
+      menu.set(53, Items.icon(Material.SPYGLASS, "Add Any Item", NamedTextColor.AQUA, "Type an item name and how many,", "e.g. 'diamond 32' or 'oak log 64'.",
+            "You don't need to have the item."), (p, c) -> this.askCostItem(p, buy, sell, amount, cost, then));
       menu.onBottomClick((p, clicked, click) -> {
          ItemStack add = clicked.clone();
          if (click.isRightClick()) {
             add.setAmount(1);
          }
-         ItemStack same = cost.stream().filter(c -> c.isSimilar(add)).findFirst().orElse(null);
-         if (same != null) {
-            same.setAmount(Math.min(9999, same.getAmount() + add.getAmount()));
-         } else if (cost.size() < 36) {
-            cost.add(add);
-         } else {
-            Messages.error(p, "A price can have at most 36 different items.");
-            return;
+         if (addCost(p, cost, add)) {
+            this.openCostEditor(p, buy, sell, amount, cost, then);
          }
-         this.openCostEditor(p, buy, sell, amount, cost, then);
       });
       player.openInventory(menu.getInventory());
+   }
+
+   /** Adds {@code add} to the price, merging it with the same item. False when the price is full. */
+   private static boolean addCost(Player player, List<ItemStack> cost, ItemStack add) {
+      ItemStack same = cost.stream().filter(c -> c.isSimilar(add)).findFirst().orElse(null);
+      if (same != null) {
+         same.setAmount(Math.min(9999, same.getAmount() + add.getAmount()));
+      } else if (cost.size() < 36) {
+         cost.add(add);
+      } else {
+         Messages.error(player, "A price can have at most 36 different items.");
+         return false;
+      }
+      return true;
+   }
+
+   /** "Add Any Item": an item name and amount typed in chat, so the admin does not need to own it. */
+   private void askCostItem(Player player, double buy, double sell, int amount, List<ItemStack> cost, Prices then) {
+      player.closeInventory();
+      Messages.info(player, "Type the item and how many the buyer pays, e.g. 'diamond 32' or 'oak log 64'. Type 'cancel' to go back.");
+      this.chat.begin(player, INPUT_SECONDS, TIMEOUT, (p, raw) -> {
+         this.chat.end(p.getUniqueId());
+         String text = raw.trim();
+         if (text.equalsIgnoreCase("cancel")) {
+            this.openCostEditor(p, buy, sell, amount, cost, then);
+            return;
+         }
+         String[] parts = text.split("\\s+");
+         int count = 1;
+         String name = text;
+         if (parts.length > 1 && parts[parts.length - 1].matches("\\d{1,4}")) {
+            count = Integer.parseInt(parts[parts.length - 1]);
+            name = text.substring(0, text.lastIndexOf(' ')).trim();
+         }
+         if (count < 1) {
+            Messages.error(p, "The amount must be at least 1.");
+            this.askCostItem(p, buy, sell, amount, cost, then);
+            return;
+         }
+         String q = name.toLowerCase(Locale.ROOT).replace("minecraft:", "").replace(' ', '_');
+         List<Material> hits = itemMaterials().stream().filter(m -> m.getKey().getKey().contains(q)).toList();
+         Material exact = hits.stream().filter(m -> m.getKey().getKey().equals(q)).findFirst().orElse(null);
+         if (exact == null && hits.size() == 1) {
+            exact = hits.get(0);
+         }
+         if (exact != null) {
+            if (addCost(p, cost, new ItemStack(exact, count))) {
+               Messages.success(p, "Added " + count + "x " + pretty(exact.getKey().getKey()) + " to the price.");
+            }
+            this.openCostEditor(p, buy, sell, amount, cost, then);
+         } else if (hits.isEmpty()) {
+            Messages.error(p, "No item matches '" + name + "'.");
+            this.askCostItem(p, buy, sell, amount, cost, then);
+         } else {
+            this.openCostItemPicker(p, name, count, hits, 0, buy, sell, amount, cost, then);
+         }
+      });
+   }
+
+   /** Several items match the typed name: click the one to add. */
+   private void openCostItemPicker(Player player, String query, int count, List<Material> hits, int page, double buy, double sell, int amount,
+                                   List<ItemStack> cost, Prices then) {
+      int pages = Math.max(1, (hits.size() + 44) / 45);
+      int current = Math.max(0, Math.min(page, pages - 1));
+      Menu menu = new Menu(player.getUniqueId(), 6, Items.text("Pick the price item (" + hits.size() + ")", NamedTextColor.DARK_GREEN), ACCESS);
+      int slot = 0;
+      for (Material m : hits.subList(current * 45, Math.min(hits.size(), current * 45 + 45))) {
+         menu.set(slot++, Items.icon(m, Items.text(pretty(m.getKey().getKey()), NamedTextColor.WHITE), lines("Click to add " + count + "x to the price."), false),
+               (p, c) -> {
+                  if (addCost(p, cost, new ItemStack(m, count))) {
+                     Messages.success(p, "Added " + count + "x " + pretty(m.getKey().getKey()) + " to the price.");
+                  }
+                  this.openCostEditor(p, buy, sell, amount, cost, then);
+               });
+      }
+      for (int i = 45; i < 54; i++) {
+         menu.set(i, Items.filler());
+      }
+      menu.set(45, Items.icon(Material.ARROW, "Back to the price", NamedTextColor.WHITE), (p, c) -> this.openCostEditor(p, buy, sell, amount, cost, then));
+      if (current > 0) {
+         menu.set(48, Items.icon(Material.ARROW, "Previous Page", NamedTextColor.YELLOW),
+               (p, c) -> this.openCostItemPicker(p, query, count, hits, current - 1, buy, sell, amount, cost, then));
+      }
+      menu.set(49, Items.icon(Material.SPYGLASS, "New Search", NamedTextColor.AQUA), (p, c) -> this.askCostItem(p, buy, sell, amount, cost, then));
+      if (current < pages - 1) {
+         menu.set(50, Items.icon(Material.ARROW, "Next Page", NamedTextColor.YELLOW),
+               (p, c) -> this.openCostItemPicker(p, query, count, hits, current + 1, buy, sell, amount, cost, then));
+      }
+      player.openInventory(menu.getInventory());
+   }
+
+   /** Every obtainable item; legacy materials are skipped by name first, since isItem()/getKey() throw on them. */
+   private static List<Material> itemMaterials() {
+      return Arrays.stream(Material.values())
+            .filter(m -> !m.name().startsWith("LEGACY_"))
+            .filter(m -> m.isItem() && !m.isAir())
+            .toList();
    }
 
    private static String priceText(double buy, List<ItemStack> cost) {

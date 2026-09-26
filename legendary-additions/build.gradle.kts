@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "net.srv"
-version = "3.3.0"
+version = "3.3.1"
 
 repositories {
     mavenCentral()

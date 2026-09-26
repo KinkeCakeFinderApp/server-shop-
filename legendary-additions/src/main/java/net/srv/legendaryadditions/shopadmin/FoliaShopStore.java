@@ -298,12 +298,24 @@ public final class FoliaShopStore {
       return product;
    }
 
+   /**
+    * "amount:base64" of the item with amount 1, because a saved item stack can hold at most 99 and
+    * an item price can ask for more. Plain base64 (older saves) is still read by {@link #decode}.
+    */
    public static String encode(ItemStack stack) {
-      return Base64.getEncoder().encodeToString(stack.serializeAsBytes());
+      ItemStack one = stack.clone();
+      one.setAmount(1);
+      return stack.getAmount() + ":" + Base64.getEncoder().encodeToString(one.serializeAsBytes());
    }
 
    public static ItemStack decode(String data) {
-      return ItemStack.deserializeBytes(Base64.getDecoder().decode(data));
+      int colon = data.indexOf(':');
+      if (colon < 0) {
+         return ItemStack.deserializeBytes(Base64.getDecoder().decode(data));
+      }
+      ItemStack stack = ItemStack.deserializeBytes(Base64.getDecoder().decode(data.substring(colon + 1)));
+      stack.setAmount(Math.max(1, Integer.parseInt(data.substring(0, colon))));
+      return stack;
    }
 
    private static List<ItemStack> decodeAll(List<String> data) {
